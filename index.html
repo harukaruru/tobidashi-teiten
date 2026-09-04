@@ -481,7 +481,7 @@
       </div>
 
       <div class="cam-controls">
-        <p class="hint" id="hint">グリッドと前回写真（ゴースト）を重ねて、同じ位置・同じ構図で撮影できます。逆向きの飛び出し君はガイドが左右反転し、撮影後に自動で反転補正して保存します。</p>
+        <p class="hint" id="hint">「ゴースト」で基準写真から飛び出し君の輪郭線を抜き出し、カメラ中央に固定表示します。実物をその枠線に合わせれば毎回同じ構図で撮影できます。逆向きの飛び出し君はガイドが左右反転し、撮影後に自動で反転補正して保存します。</p>
         <input class="spot-input" id="spotInput" type="text" autocomplete="off" placeholder="スポット名（例：みなみ小学校前）">
         <div class="shutter-row">
           <button class="thumb-jump" id="thumbJump" type="button" aria-label="ライブラリを開く"></button>
@@ -556,7 +556,7 @@
       <i class="ch" data-h="sw"></i><i class="ch" data-h="se"></i>
     </div>
   </div>
-  <p class="cropm-tip">枠の中をドラッグで移動、角をドラッグで拡大・縮小。飛び出し君だけを囲むと、その形の輪郭ゴーストになります。</p>
+  <p class="cropm-tip">飛び出し君だけを枠で囲ってください（中をドラッグで移動、角で拡大・縮小）。囲んだ輪郭線がカメラの中央に表示され、実物をそれに合わせると毎回同じ構図で撮れます。枠の大きさ＝カメラでの表示サイズです。</p>
   <div class="cropm-bar">
     <button class="btn" id="cropAll" type="button">全体</button>
     <button class="btn" id="cropCancel" type="button">キャンセル</button>
@@ -684,7 +684,10 @@
   function positionGhost(){
     var b=ghostBox;
     if(b){
-      ghostWrap.style.left=(b.x*100)+"%";ghostWrap.style.top=(b.y*100)+"%";
+      // extracted region is shown CENTERED in the viewfinder; the box size
+      // just controls how large it appears. Line the real sign up to it.
+      ghostWrap.style.left=((1-b.w)/2*100)+"%";
+      ghostWrap.style.top=((1-b.h)/2*100)+"%";
       ghostWrap.style.width=(b.w*100)+"%";ghostWrap.style.height=(b.h*100)+"%";
       ghostWrap.style.right="auto";ghostWrap.style.bottom="auto";
     }else{
@@ -692,7 +695,7 @@
       ghostWrap.style.width="100%";ghostWrap.style.height="100%";
       ghostWrap.style.right="auto";ghostWrap.style.bottom="auto";
     }
-    ghostImg.style.objectFit=(!ghostBox&&ghostMode==="photo")?"cover":"contain";
+    ghostImg.style.objectFit=(!b&&ghostMode==="photo")?"cover":"contain";
   }
   function updateGhostModeUI(){
     el("#gmPhoto").setAttribute("aria-pressed",ghostMode==="photo"?"true":"false");
@@ -788,7 +791,7 @@
   function setGhostMode(mode){
     ghostMode=mode;updateGhostModeUI();
     setMeta("ghostMode",mode);
-    buildGhostSource();
+    positionGhost();buildGhostSource();
   }
   function clearRef(){
     return Promise.all([setMeta("refId",null),setMeta("ghostBox",null)]).then(loadRef);

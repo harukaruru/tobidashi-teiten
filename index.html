@@ -171,24 +171,6 @@
   .chip--status.ok{background:rgba(79,122,60,.92);border-color:rgba(255,255,255,.7)}
   .chip--status.warn{background:rgba(18,16,14,.5);opacity:.9}
 
-  .sten-panel{
-    position:absolute;left:10px;right:10px;top:52px;
-    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-    padding:10px 12px;border-radius:12px;
-    background:rgba(18,16,14,.72);
-    border:1.5px solid rgba(255,255,255,.32);
-    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
-    color:#fff;font-size:12px;
-  }
-  .sten-panel label{display:flex;align-items:center;gap:8px;flex:1 1 130px;font-weight:700}
-  .sten-panel input[type=range]{flex:1;accent-color:var(--accent)}
-  .sten-panel .sp-row{display:flex;gap:8px;flex-basis:100%}
-  .btn-mini{
-    appearance:none;border:1.5px solid rgba(255,255,255,.5);
-    background:transparent;color:#fff;font-family:var(--f-body);
-    font-size:11px;font-weight:700;padding:6px 10px;border-radius:8px;cursor:pointer;
-  }
-
   .cam-msg{
     position:absolute;inset:0;z-index:5;
     display:flex;flex-direction:column;gap:12px;
@@ -409,17 +391,20 @@
         <video id="video" playsinline webkit-playsinline muted autoplay></video>
         <div class="overlay" id="overlay">
           <div class="stencil" id="stencil">
-            <svg id="stencilArt" viewBox="0 0 200 300" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-              <g fill="none" stroke="#5cff8f" stroke-linecap="round" stroke-linejoin="round" stroke-width="16">
-                <path d="M100,66 Q90,110 98,150"/>
-                <path d="M98,150 Q122,174 131,195 Q141,216 150,250"/>
-                <path d="M96,150 Q74,180 64,210 Q54,236 47,261"/>
-                <path d="M107,80 Q136,85 143,96 Q151,101 157,69"/>
-                <path d="M91,82 Q66,90 61,106 Q57,117 55,129"/>
+            <svg id="stencilArt" viewBox="0 0 200 320" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+              <g fill="none" stroke="#5cff8f" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M100,82 Q90,134 96,178" stroke-width="30"/>
+                <path d="M99,178 Q124,196 130,212 Q133,228 129,248" stroke-width="22"/>
+                <path d="M92,178 Q70,204 60,224 Q51,240 46,258" stroke-width="22"/>
+                <path d="M110,92 Q138,98 147,110 Q151,116 149,99" stroke-width="16"/>
+                <path d="M90,94 Q65,102 58,117 Q54,125 56,137" stroke-width="16"/>
               </g>
-              <circle cx="104" cy="40" r="24" fill="none" stroke="#5cff8f" stroke-width="7"/>
+              <ellipse cx="129" cy="256" rx="19" ry="12" transform="rotate(8 129 256)" fill="none" stroke="#5cff8f" stroke-width="6"/>
+              <ellipse cx="46" cy="264" rx="20" ry="12" transform="rotate(-16 46 264)" fill="none" stroke="#5cff8f" stroke-width="6"/>
+              <ellipse cx="150" cy="97" rx="13" ry="11" fill="none" stroke="#5cff8f" stroke-width="6"/>
+              <ellipse cx="55" cy="138" rx="13" ry="11" fill="none" stroke="#5cff8f" stroke-width="6"/>
+              <circle cx="107" cy="49" r="38" fill="none" stroke="#5cff8f" stroke-width="6"/>
             </svg>
-            <img id="stencilImg" alt="" hidden>
           </div>
         </div>
 
@@ -429,25 +414,12 @@
           <span class="chip chip--status warn" id="chipGps">GPS —</span>
         </div>
 
-        <div class="sten-panel" id="stenPanel" hidden>
-          <label>濃さ
-            <input type="range" id="stenOpacity" min="10" max="95" value="45" aria-label="型紙の濃さ">
-          </label>
-          <label>大きさ
-            <input type="range" id="stenScale" min="35" max="98" value="70" aria-label="型紙の大きさ">
-          </label>
-          <div class="sp-row">
-            <button class="btn-mini" id="btnStenImg" type="button">画像を使う</button>
-            <button class="btn-mini" id="btnStenReset" type="button">標準にもどす</button>
-          </div>
-        </div>
-
         <div class="flash" id="flash"></div>
         <div class="cam-msg" id="camMsg" hidden></div>
       </div>
 
       <div class="cam-controls">
-        <p class="hint" id="hint">カメラ中央の型紙（飛び出し君の線画）に実物を重ねると、毎回同じ位置・同じ大きさで撮影できます。「型紙」でオン／オフ、パネルで濃さと大きさを調整。「画像を使う」で自分で用意した線画に差し替えられます。逆向きは ◀ で型紙が左右反転し、撮影後に自動で反転補正して保存します。</p>
+        <p class="hint" id="hint">カメラ中央の型紙（走る子どものシルエット）に実物を重ねると、毎回同じ位置・同じ大きさで撮影できます。「型紙」でオン／オフ。逆向きは ◀ で型紙が左右反転し、撮影後に自動で反転補正して保存します。</p>
         <input class="spot-input" id="spotInput" type="text" autocomplete="off" placeholder="スポット名（例：みなみ小学校前）">
         <div class="shutter-row">
           <button class="thumb-jump" id="thumbJump" type="button" aria-label="ライブラリを開く"></button>
@@ -512,7 +484,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="sheet" id="sheet" hidden><div class="sheet-card" id="sheetCard"></div></div>
 <input id="importFile" type="file" accept="application/json,.json" hidden>
-<input id="stenFile" type="file" accept="image/*" hidden>
 
 <script>
 (function(){
@@ -569,11 +540,11 @@
 
   /* ---------- camera ---------- */
   var video=el("#video"),viewfinder=el("#viewfinder"),overlay=el("#overlay"),
-      stencil=el("#stencil"),stencilArt=el("#stencilArt"),stencilImgEl=el("#stencilImg"),
+      stencil=el("#stencil"),
       camMsg=el("#camMsg"),flash=el("#flash"),
       shutter=el("#shutter"),spotInput=el("#spotInput"),thumbJump=el("#thumbJump");
   var stream=null,facing="environment",dir="right";
-  var stenOn=true,stenOpacity=45,stenScale=70,stenImgURL=null;
+  var stenOn=true;
 
   function isSecure(){return window.isSecureContext!==false;}
 
@@ -628,54 +599,18 @@
 
   function applyMirror(){overlay.classList.toggle("mirror",dir==="left");}
 
-  // ---- centred figure guide ("型紙") ----
+  // ---- centred figure guide ("型紙"): fixed size/opacity, on/off only ----
+  var STEN_OPACITY=0.55;
   function applyStencil(){
-    stencil.style.opacity=stenOn?(stenOpacity/100):0;
-    stencil.style.height=stenScale+"%";
+    stencil.style.opacity=stenOn?STEN_OPACITY:0;
     el("#chipStencil").setAttribute("aria-pressed",stenOn?"true":"false");
-    el("#stenPanel").hidden=!stenOn;
-  }
-  function showStencilImg(url){
-    if(stenImgURL){URL.revokeObjectURL(stenImgURL);stenImgURL=null;}
-    if(url){
-      stenImgURL=url;
-      stencilImgEl.src=url;stencilImgEl.hidden=false;stencilArt.hidden=true;
-    }else{
-      stencilImgEl.removeAttribute("src");stencilImgEl.hidden=true;stencilArt.hidden=false;
-    }
   }
   function loadStencil(){
-    if(!db){showStencilImg(null);applyStencil();return Promise.resolve();}
-    return Promise.all([getMeta("stenOn"),getMeta("stenOpacity"),getMeta("stenScale"),getMeta("stenImg")])
-      .then(function(m){
-        stenOn=(m[0]==null)?true:!!m[0];
-        stenOpacity=m[1]||45;
-        stenScale=m[2]||70;
-        el("#stenOpacity").value=stenOpacity;
-        el("#stenScale").value=stenScale;
-        if(m[3]&&db){
-          return getOne("meta","stenImgBlob").then(function(r){
-            if(r&&r.v){showStencilImg(URL.createObjectURL(r.v));}
-            else showStencilImg(null);
-            applyStencil();
-          });
-        }
-        showStencilImg(null);applyStencil();
-      });
-  }
-  function setStencilImgFromFile(file){
-    if(!file)return;
-    if(!/^image\//.test(file.type)){toast("画像ファイルを選んでください");return;}
-    var url=URL.createObjectURL(file);
-    showStencilImg(url);
-    if(db){setMeta("stenImg",1);setMeta("stenImgBlob",file);}
-    stenOn=true;applyStencil();
-    toast("型紙を差し替えました");
-  }
-  function resetStencil(){
-    showStencilImg(null);
-    if(db){setMeta("stenImg",null);delOne("meta","stenImgBlob");}
-    toast("標準の型紙にもどしました");
+    if(!db){applyStencil();return Promise.resolve();}
+    return getMeta("stenOn").then(function(v){
+      stenOn=(v==null)?true:!!v;
+      applyStencil();
+    });
   }
 
   function flashShutter(){
@@ -1065,20 +1000,6 @@
     el("#chipStencil").addEventListener("click",function(){
       stenOn=!stenOn;applyStencil();setMeta("stenOn",stenOn);
     });
-    el("#stenOpacity").addEventListener("input",function(){
-      stenOpacity=+this.value;applyStencil();
-    });
-    el("#stenOpacity").addEventListener("change",function(){setMeta("stenOpacity",stenOpacity);});
-    el("#stenScale").addEventListener("input",function(){
-      stenScale=+this.value;applyStencil();
-    });
-    el("#stenScale").addEventListener("change",function(){setMeta("stenScale",stenScale);});
-    el("#btnStenImg").addEventListener("click",function(){el("#stenFile").click();});
-    el("#stenFile").addEventListener("change",function(e){
-      var f=e.target.files&&e.target.files[0];e.target.value="";
-      setStencilImgFromFile(f);
-    });
-    el("#btnStenReset").addEventListener("click",resetStencil);
 
     spotInput.addEventListener("change",function(){setMeta("lastSpot",spotInput.value.trim());});
 

@@ -1,0 +1,1053 @@
+<title>トビダシ定点観測</title>
+<meta name="theme-color" content="#e7e1d0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+
+<style>
+  *{box-sizing:border-box}
+
+  :root{
+    --ground:#e7e1d0;
+    --panel:#f4f0e4;
+    --panel-2:#ebe4d2;
+    --field:#fbf9f1;
+    --ink:#221c16;
+    --muted:#6e6553;
+    --line:#cdc4ac;
+    --accent:#d8321f;
+    --accent-ink:#fff4ef;
+    --yellow:#f2b300;
+    --good:#4f7a3c;
+    --radius:14px;
+    --radius-s:10px;
+    --shadow:0 1px 0 rgba(34,28,22,.06), 0 14px 30px -18px rgba(34,28,22,.45);
+    --maxw:480px;
+    --f-body:"Zen Kaku Gothic New",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --f-display:"Zen Maru Gothic",var(--f-body);
+    --f-mono:"DM Mono",ui-monospace,Menlo,Consolas,monospace;
+    color-scheme:light dark;
+  }
+
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#141619;
+      --panel:#1e2127;
+      --panel-2:#262a31;
+      --field:#191c21;
+      --ink:#ede7d9;
+      --muted:#9b9484;
+      --line:#333842;
+      --accent:#f1503c;
+      --accent-ink:#1a0b08;
+      --yellow:#f4be2c;
+      --good:#82b26b;
+      --shadow:0 1px 0 rgba(0,0,0,.3), 0 18px 38px -20px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#141619;
+    --panel:#1e2127;
+    --panel-2:#262a31;
+    --field:#191c21;
+    --ink:#ede7d9;
+    --muted:#9b9484;
+    --line:#333842;
+    --accent:#f1503c;
+    --accent-ink:#1a0b08;
+    --yellow:#f4be2c;
+    --good:#82b26b;
+    --shadow:0 1px 0 rgba(0,0,0,.3), 0 18px 38px -20px rgba(0,0,0,.8);
+  }
+
+  html,body{height:100%}
+  body{
+    margin:0;
+    background:var(--ground);
+    color:var(--ink);
+    font-family:var(--f-body);
+    font-size:15px;
+    line-height:1.6;
+    -webkit-text-size-adjust:100%;
+  }
+
+  .app{
+    max-width:var(--maxw);
+    margin-inline:auto;
+    min-height:100dvh;
+    display:flex;
+    flex-direction:column;
+    background:var(--ground);
+    position:relative;
+  }
+  @media (min-width:520px){
+    .app{border-inline:1px solid var(--line)}
+  }
+
+  /* ---- top bar ---- */
+  .topbar{
+    position:sticky;top:0;z-index:30;
+    display:flex;align-items:center;justify-content:space-between;
+    gap:10px;padding:10px 14px;
+    background:var(--ground);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{display:flex;align-items:center;gap:9px}
+  .brand-mark{
+    width:28px;height:28px;border-radius:8px;
+    background:var(--yellow);
+    display:grid;place-items:center;
+    box-shadow:inset 0 0 0 1.5px rgba(34,28,22,.35);
+  }
+  .brand-mark svg{width:20px;height:20px;display:block}
+  .brand-name{
+    font-family:var(--f-display);font-weight:700;
+    font-size:16px;letter-spacing:.02em;
+  }
+  .icon-btn{
+    appearance:none;border:1.5px solid var(--line);
+    background:var(--panel);color:var(--ink);
+    width:36px;height:36px;border-radius:10px;
+    display:grid;place-items:center;cursor:pointer;
+  }
+  .icon-btn svg{width:18px;height:18px}
+  .icon-btn:active{transform:scale(.95)}
+
+  main{flex:1;position:relative;display:flex;flex-direction:column}
+  .view{flex:1;min-height:0}
+
+  /* ---- camera ---- */
+  #view-camera{display:flex;flex-direction:column}
+  .viewfinder{
+    position:relative;width:100%;
+    aspect-ratio:3/4;max-height:64dvh;
+    background:#000;overflow:hidden;
+    border-bottom:1px solid var(--line);
+    touch-action:manipulation;
+  }
+  #video{
+    position:absolute;inset:0;width:100%;height:100%;
+    object-fit:cover;display:block;background:#000;
+  }
+  .overlay{position:absolute;inset:0;pointer-events:none;transform-origin:center}
+  .overlay.mirror{transform:scaleX(-1)}
+  .grid{position:absolute;inset:0;width:100%;height:100%}
+  .grid.off{opacity:0}
+  .ghost{
+    position:absolute;inset:0;width:100%;height:100%;
+    object-fit:cover;opacity:0;
+    transition:opacity .18s ease;
+  }
+  @media (prefers-reduced-motion:reduce){.ghost{transition:none}}
+
+  .vf-top{
+    position:absolute;left:0;right:0;top:0;
+    display:flex;flex-wrap:wrap;gap:6px;padding:10px;
+    pointer-events:none;
+  }
+  .chip{
+    pointer-events:auto;
+    font-family:var(--f-body);font-size:12px;font-weight:700;line-height:1;
+    padding:7px 11px;border-radius:999px;
+    border:1.5px solid rgba(255,255,255,.6);
+    background:rgba(18,16,14,.55);color:#fff;
+    -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+    cursor:pointer;white-space:nowrap;
+  }
+  .chip[aria-pressed="true"]{
+    background:var(--accent);border-color:#fff;color:#fff;
+  }
+  .chip--status{pointer-events:none;font-weight:500}
+  .chip--status.ok{background:rgba(79,122,60,.92);border-color:rgba(255,255,255,.7)}
+  .chip--status.warn{background:rgba(18,16,14,.5);opacity:.9}
+
+  .ghost-panel{
+    position:absolute;left:10px;right:10px;top:52px;
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:10px 12px;border-radius:12px;
+    background:rgba(18,16,14,.72);
+    border:1.5px solid rgba(255,255,255,.32);
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+    color:#fff;font-size:12px;
+  }
+  .ghost-panel label{display:flex;align-items:center;gap:8px;flex:1 1 150px;font-weight:700}
+  .ghost-panel input[type=range]{flex:1;accent-color:var(--accent)}
+  .ghost-panel .ref-name{flex-basis:100%;font-family:var(--f-mono);font-size:11px;opacity:.85}
+  .btn-mini{
+    appearance:none;border:1.5px solid rgba(255,255,255,.5);
+    background:transparent;color:#fff;font-family:var(--f-body);
+    font-size:11px;font-weight:700;padding:6px 9px;border-radius:8px;cursor:pointer;
+  }
+
+  .cam-msg{
+    position:absolute;inset:0;z-index:5;
+    display:flex;flex-direction:column;gap:12px;
+    align-items:center;justify-content:center;text-align:center;
+    padding:28px;background:rgba(8,7,6,.86);color:#fff;
+  }
+  .cam-msg h3{font-family:var(--f-display);font-weight:700;font-size:18px;margin:0;text-wrap:balance}
+  .cam-msg p{margin:0;font-size:13px;line-height:1.7;color:rgba(255,255,255,.82);max-width:34ch}
+
+  .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:6}
+  .flash.go{animation:flash .45s ease-out}
+  @keyframes flash{from{opacity:.92}to{opacity:0}}
+  @media (prefers-reduced-motion:reduce){.flash.go{animation:none}}
+
+  .cam-controls{
+    display:flex;flex-direction:column;gap:12px;
+    padding:14px 16px calc(16px + env(safe-area-inset-bottom));
+  }
+  .hint{
+    margin:0;font-size:12px;color:var(--muted);line-height:1.55;
+    border-left:3px solid var(--yellow);padding-left:10px;
+  }
+  .spot-input{
+    width:100%;font-family:var(--f-body);font-size:15px;
+    padding:11px 14px;border-radius:12px;
+    border:1.5px solid var(--line);background:var(--field);color:var(--ink);
+  }
+  .spot-input:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+
+  .shutter-row{display:flex;align-items:center;justify-content:space-between}
+  .shutter{
+    width:74px;height:74px;border-radius:50%;
+    border:5px solid var(--ink);background:var(--accent);
+    box-shadow:var(--shadow);cursor:pointer;position:relative;
+    transition:transform .08s ease;
+  }
+  .shutter::after{content:"";position:absolute;inset:7px;border-radius:50%;border:2px solid rgba(255,255,255,.55)}
+  .shutter:active{transform:scale(.93)}
+  .shutter:disabled{opacity:.4;cursor:not-allowed}
+  .thumb-jump{
+    width:48px;height:48px;border-radius:12px;overflow:hidden;
+    border:1.5px solid var(--line);background:var(--panel-2);
+    background-size:cover;background-position:center;cursor:pointer;padding:0;
+  }
+  .switch-cam{
+    width:48px;height:48px;border-radius:50%;
+    border:1.5px solid var(--line);background:var(--panel);color:var(--ink);
+    font-size:20px;cursor:pointer;display:grid;place-items:center;
+  }
+  .switch-cam:active{transform:scale(.94)}
+
+  /* ---- library ---- */
+  #view-library{padding:14px 16px calc(96px + env(safe-area-inset-bottom))}
+  .lib-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:14px}
+  .lib-title{font-family:var(--f-display);font-weight:700;font-size:20px;margin:0}
+  .lib-count{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+  .spot-group{margin-bottom:22px}
+  .spot-group h3{
+    position:sticky;top:53px;z-index:2;
+    display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+    margin:0 0 9px;padding:6px 0;
+    font-family:var(--f-display);font-weight:700;font-size:15px;
+    background:var(--ground);border-bottom:2px solid var(--line);
+  }
+  .spot-group h3 .n{font-family:var(--f-mono);font-size:10px;font-weight:400;color:var(--muted)}
+  .grid-thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .grid-thumbs button{
+    position:relative;padding:0;border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;aspect-ratio:3/4;
+    background:var(--panel-2);cursor:pointer;
+  }
+  .grid-thumbs img{width:100%;height:100%;object-fit:cover;display:block}
+  .grid-thumbs .d{
+    position:absolute;left:0;right:0;bottom:0;
+    font-family:var(--f-mono);font-size:9px;color:#fff;text-align:center;
+    padding:10px 3px 3px;background:linear-gradient(transparent,rgba(0,0,0,.62));
+  }
+  .empty{
+    display:flex;flex-direction:column;align-items:center;gap:12px;
+    padding:64px 24px;text-align:center;color:var(--muted);font-size:14px;
+  }
+  .empty svg{width:44px;height:44px;opacity:.5}
+
+  /* ---- slideshow ---- */
+  #view-slideshow{
+    padding:14px 16px calc(96px + env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;gap:12px;
+  }
+  .ss-top{display:flex;gap:8px;flex-wrap:wrap}
+  .ss-top select{
+    font-family:var(--f-body);font-size:13px;font-weight:700;
+    padding:8px 10px;border-radius:10px;
+    border:1.5px solid var(--line);background:var(--field);color:var(--ink);
+  }
+  .ss-top label.loop{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--muted)}
+  .ss-top input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+  .ss-stage{
+    position:relative;width:100%;aspect-ratio:3/4;max-height:60dvh;
+    background:#0b0b0b;border-radius:14px;overflow:hidden;border:1px solid var(--line);
+  }
+  .ss-stage img{
+    position:absolute;inset:0;width:100%;height:100%;object-fit:contain;
+    background:#0b0b0b;opacity:1;transition:opacity .35s ease;
+  }
+  @media (prefers-reduced-motion:reduce){.ss-stage img{transition:none}}
+  .ss-caption{
+    display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+    font-family:var(--f-mono);font-size:12px;color:var(--muted);
+  }
+  .ss-dots{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;min-height:6px}
+  .ss-dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}
+  .ss-dots i.on{background:var(--accent)}
+  .ss-transport{display:flex;align-items:center;justify-content:center;gap:18px}
+  .ss-transport button{
+    width:46px;height:46px;border-radius:50%;
+    border:1.5px solid var(--line);background:var(--panel);color:var(--ink);
+    font-size:16px;cursor:pointer;display:grid;place-items:center;
+  }
+  .ss-transport .play{
+    width:62px;height:62px;background:var(--accent);color:var(--accent-ink);
+    border:3px solid var(--ink);font-size:20px;
+  }
+  .ss-transport button:active{transform:scale(.94)}
+
+  /* ---- tab bar ---- */
+  .tabbar{
+    position:sticky;bottom:0;z-index:25;display:flex;
+    background:var(--panel);border-top:1px solid var(--line);
+  }
+  .tab{
+    flex:1;appearance:none;border:0;background:none;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+    padding:8px 4px calc(8px + env(safe-area-inset-bottom));
+    color:var(--muted);font-family:var(--f-body);font-size:10px;font-weight:700;
+  }
+  .tab svg{width:22px;height:22px}
+  .tab.is-active{color:var(--accent)}
+  .tab:focus-visible{outline:2px solid var(--accent);outline-offset:-3px}
+
+  /* ---- sheet ---- */
+  .sheet{
+    position:fixed;inset:0;z-index:50;
+    display:flex;align-items:flex-end;justify-content:center;
+    background:rgba(8,7,6,.5);
+  }
+  @media (min-width:520px){.sheet{align-items:center}}
+  .sheet-card{
+    width:100%;max-width:var(--maxw);max-height:92dvh;overflow:auto;
+    background:var(--panel);border-radius:18px 18px 0 0;
+    padding:16px 16px calc(20px + env(safe-area-inset-bottom));
+    box-shadow:var(--shadow);
+  }
+  @media (min-width:520px){.sheet-card{border-radius:18px}}
+  .sheet-h{font-family:var(--f-display);font-weight:700;font-size:17px;margin:2px 0 8px}
+  .sheet .full{width:100%;border-radius:12px;background:#000;display:block;margin-bottom:12px}
+  .muted-p{color:var(--muted);font-size:12.5px;line-height:1.7;margin:0 0 12px}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:13px;margin:0 0 14px}
+  .kv dt{color:var(--muted)}
+  .kv dd{margin:0;font-family:var(--f-mono);word-break:break-word}
+  .kv dd .maplink{font-family:var(--f-body);font-weight:700;color:var(--accent);text-decoration:none;white-space:nowrap}
+  .sheet-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{
+    flex:1 1 auto;appearance:none;cursor:pointer;
+    font-family:var(--f-body);font-size:13px;font-weight:700;
+    padding:11px 14px;border-radius:12px;
+    border:1.5px solid var(--line);background:var(--panel-2);color:var(--ink);
+    text-align:center;
+  }
+  .btn:active{transform:scale(.98)}
+  .btn--primary{background:var(--accent);color:var(--accent-ink);border-color:var(--ink)}
+  .btn--danger{color:var(--accent);border-color:var(--accent);background:transparent}
+
+  .toast{
+    position:fixed;left:50%;bottom:88px;z-index:60;
+    transform:translateX(-50%) translateY(8px);
+    background:var(--ink);color:var(--ground);
+    padding:8px 16px;border-radius:999px;
+    font-size:13px;font-weight:700;
+    opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .banner{
+    background:var(--accent);color:var(--accent-ink);
+    font-size:12px;font-weight:700;text-align:center;padding:7px 12px;
+  }
+
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+
+<div class="app">
+  <div class="banner" id="banner" hidden></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <circle cx="13.4" cy="4.3" r="2.5" fill="#221c16"/>
+          <path d="M11.6 8.2c1.7-.6 3.2.2 3.6 1.8l.9 3.3 2.9 1.8-1 1.7-3.6-2.1-.7-1.9-1 3 2.4 3.4-1.5 3.4-1.8-.8 1.1-2.6-2.9-3.9c-.5-.8-.6-1.5-.4-2.5l-1.9 1.1-.2 3-2 .1.3-4 4.2-2.3Z" fill="#221c16"/>
+          <path d="M5.4 10.1 9 8.7l.6 1.8-3 1.3-1.2-1.7Z" fill="#d8321f"/>
+        </svg>
+      </span>
+      <span class="brand-name">トビダシ定点観測</span>
+    </div>
+    <button class="icon-btn" id="btnBackup" aria-label="バックアップと書き出し">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>
+      </svg>
+    </button>
+  </header>
+
+  <main>
+    <!-- ======= CAMERA ======= -->
+    <section id="view-camera" class="view">
+      <div class="viewfinder" id="viewfinder">
+        <video id="video" playsinline webkit-playsinline muted autoplay></video>
+        <div class="overlay" id="overlay">
+          <svg class="grid" id="grid" viewBox="0 0 300 400" preserveAspectRatio="none" aria-hidden="true">
+            <g stroke="#ffffff" stroke-opacity=".55" fill="none" vector-effect="non-scaling-stroke">
+              <path d="M100 0V400M200 0V400M0 133.33H300M0 266.66H300" stroke-width="2.2"/>
+              <path d="M150 0V400M0 200H300" stroke-width="3.4"/>
+              <path d="M150 176v48M126 200h48" stroke-width="3.4"/>
+            </g>
+            <g stroke="#d8321f" stroke-opacity=".92" fill="none" vector-effect="non-scaling-stroke">
+              <path d="M100 0V400M200 0V400M0 133.33H300M0 266.66H300" stroke-width="1"/>
+              <path d="M150 0V400M0 200H300" stroke-width="1.7"/>
+              <path d="M150 176v48M126 200h48" stroke-width="1.7"/>
+            </g>
+          </svg>
+          <img class="ghost" id="ghost" alt="">
+        </div>
+
+        <div class="vf-top">
+          <button class="chip" id="chipDir" aria-pressed="false" type="button">▶ 右向き</button>
+          <button class="chip" id="chipGrid" aria-pressed="true" type="button">グリッド</button>
+          <button class="chip" id="chipGhost" aria-pressed="false" type="button">ゴースト</button>
+          <span class="chip chip--status warn" id="chipGps">GPS —</span>
+        </div>
+
+        <div class="ghost-panel" id="ghostPanel" hidden>
+          <label>透明度
+            <input type="range" id="ghostOpacity" min="0" max="80" value="38" aria-label="ゴーストの透明度">
+          </label>
+          <button class="btn-mini" id="btnPickRef" type="button">基準を選ぶ</button>
+          <button class="btn-mini" id="btnClearRef" type="button">解除</button>
+          <span class="ref-name" id="refName">基準：なし</span>
+        </div>
+
+        <div class="flash" id="flash"></div>
+        <div class="cam-msg" id="camMsg" hidden></div>
+      </div>
+
+      <div class="cam-controls">
+        <p class="hint" id="hint">グリッドと前回写真（ゴースト）を重ねて、同じ位置・同じ構図で撮影できます。逆向きの飛び出し君はガイドが左右反転し、撮影後に自動で反転補正して保存します。</p>
+        <input class="spot-input" id="spotInput" type="text" autocomplete="off" placeholder="スポット名（例：みなみ小学校前）">
+        <div class="shutter-row">
+          <button class="thumb-jump" id="thumbJump" type="button" aria-label="ライブラリを開く"></button>
+          <button class="shutter" id="shutter" type="button" aria-label="撮影する"></button>
+          <button class="switch-cam" id="switchCam" type="button" aria-label="前面／背面カメラを切り替え">⟲</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======= LIBRARY ======= -->
+    <section id="view-library" class="view" hidden>
+      <div class="lib-head">
+        <h2 class="lib-title">ライブラリ</h2>
+        <span class="lib-count" id="libCount"></span>
+      </div>
+      <div id="libList"></div>
+    </section>
+
+    <!-- ======= SLIDESHOW ======= -->
+    <section id="view-slideshow" class="view" hidden>
+      <div class="ss-top">
+        <select id="ssSpot" aria-label="スポットを選ぶ"></select>
+        <select id="ssInterval" aria-label="切り替え間隔">
+          <option value="1500">1.5秒</option>
+          <option value="3000" selected>3秒</option>
+          <option value="5000">5秒</option>
+        </select>
+        <label class="loop"><input type="checkbox" id="ssLoop" checked>ループ</label>
+      </div>
+      <div class="ss-stage">
+        <img id="ssImg" alt="スライドショー">
+      </div>
+      <div class="ss-caption">
+        <span id="ssCaption">—</span>
+        <span id="ssIndex"></span>
+      </div>
+      <div class="ss-dots" id="ssDots"></div>
+      <div class="ss-transport">
+        <button id="ssPrev" type="button" aria-label="前へ">⏮</button>
+        <button id="ssPlay" class="play" type="button" aria-label="再生／一時停止">▶</button>
+        <button id="ssNext" type="button" aria-label="次へ">⏭</button>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab is-active" data-view="camera" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h1.5l1.2-1.8A2 2 0 0 1 10.4 3h3.2a2 2 0 0 1 1.7.9L16.5 6H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><circle cx="12" cy="12.5" r="3.2"/></svg>
+      <span>カメラ</span>
+    </button>
+    <button class="tab" data-view="library" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="7" rx="1.4"/><rect x="14" y="4" width="7" height="7" rx="1.4"/><rect x="3" y="15" width="7" height="5" rx="1.4"/><rect x="14" y="15" width="7" height="5" rx="1.4"/></svg>
+      <span>ライブラリ</span>
+    </button>
+    <button class="tab" data-view="slideshow" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3Z" fill="currentColor"/></svg>
+      <span>スライドショー</span>
+    </button>
+  </nav>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="sheet" id="sheet" hidden><div class="sheet-card" id="sheetCard"></div></div>
+<input id="importFile" type="file" accept="application/json,.json" hidden>
+
+<script>
+(function(){
+  "use strict";
+  var el=function(s,r){return (r||document).querySelector(s);};
+  var els=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));};
+  var reduceMotion=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var pad=function(n){return String(n).padStart(2,"0");};
+
+  function fmtFull(ts){var d=new Date(ts);return d.getFullYear()+"/"+pad(d.getMonth()+1)+"/"+pad(d.getDate())+" "+pad(d.getHours())+":"+pad(d.getMinutes());}
+  function fmtShort(ts){var d=new Date(ts);return pad(d.getMonth()+1)+"/"+pad(d.getDate())+" '"+String(d.getFullYear()).slice(2);}
+  function fmtStamp(){var d=new Date();return ""+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+"-"+pad(d.getHours())+pad(d.getMinutes());}
+  function fmtRange(items){var a=items[items.length-1].ts,b=items[0].ts;return a===b?fmtShort(a):fmtShort(a)+"–"+fmtShort(b);}
+
+  var toastT;
+  function toast(msg){var t=el("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove("show");},1800);}
+  function banner(msg){var b=el("#banner");if(!msg){b.hidden=true;return;}b.textContent=msg;b.hidden=false;}
+
+  /* ---------- IndexedDB ---------- */
+  var DB_NAME="tobidashi-teiten",DB_VER=1,db=null;
+  function openDB(){
+    return new Promise(function(res,rej){
+      var r=indexedDB.open(DB_NAME,DB_VER);
+      r.onupgradeneeded=function(){
+        var d=r.result;
+        if(!d.objectStoreNames.contains("photos")){
+          var s=d.createObjectStore("photos",{keyPath:"id"});
+          s.createIndex("spot","spot",{unique:false});
+          s.createIndex("ts","ts",{unique:false});
+        }
+        if(!d.objectStoreNames.contains("meta")) d.createObjectStore("meta",{keyPath:"k"});
+      };
+      r.onsuccess=function(){res(r.result);};
+      r.onerror=function(){rej(r.error);};
+    });
+  }
+  function reqP(r){return new Promise(function(res,rej){r.onsuccess=function(){res(r.result);};r.onerror=function(){rej(r.error);};});}
+  function store(name,mode){return db.transaction(name,mode).objectStore(name);}
+  function put(name,val){return reqP(store(name,"readwrite").put(val));}
+  function getOne(name,key){return reqP(store(name,"readonly").get(key));}
+  function delOne(name,key){return reqP(store(name,"readwrite").delete(key));}
+  function getAll(name){return reqP(store(name,"readonly").getAll());}
+  function setMeta(k,v){return put("meta",{k:k,v:v});}
+  function getMeta(k){return getOne("meta",k).then(function(r){return r?r.v:null;});}
+
+  /* ---------- blob helpers ---------- */
+  function blobToDataURL(b){return new Promise(function(res){var fr=new FileReader();fr.onload=function(){res(fr.result);};fr.readAsDataURL(b);});}
+  function dataURLtoBlob(u){
+    var parts=u.split(","),m=/:(.*?);/.exec(parts[0]),mime=m?m[1]:"application/octet-stream";
+    var bin=atob(parts[1]),n=bin.length,arr=new Uint8Array(n);
+    while(n--) arr[n]=bin.charCodeAt(n);
+    return new Blob([arr],{type:mime});
+  }
+
+  /* ---------- camera ---------- */
+  var video=el("#video"),viewfinder=el("#viewfinder"),overlay=el("#overlay"),
+      grid=el("#grid"),ghost=el("#ghost"),camMsg=el("#camMsg"),flash=el("#flash"),
+      shutter=el("#shutter"),spotInput=el("#spotInput"),thumbJump=el("#thumbJump");
+  var stream=null,facing="environment",dir="right",gridOn=true,ghostOn=false,refURL=null;
+
+  function isSecure(){return window.isSecureContext!==false;}
+
+  function camMessage(title,body){
+    camMsg.innerHTML="";
+    var h=document.createElement("h3");h.textContent=title;
+    var p=document.createElement("p");p.textContent=body;
+    var btn=document.createElement("button");btn.className="btn btn--primary";btn.type="button";
+    btn.textContent="カメラを開始";
+    btn.style.flex="0 0 auto";
+    btn.onclick=function(){camMsg.hidden=true;ensureCamera(true);};
+    camMsg.appendChild(h);camMsg.appendChild(p);camMsg.appendChild(btn);
+    camMsg.hidden=false;
+  }
+
+  function ensureCamera(userGesture){
+    if(stream) return Promise.resolve(true);
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!isSecure()){
+      camMessage("この画面ではカメラを使えません",
+        "HTTPSで開いた対応ブラウザ（スマートフォンのSafari／Chromeなど）でこのページを直接開いてください。埋め込み表示ではカメラが使えないことがあります。");
+      return Promise.resolve(false);
+    }
+    return navigator.mediaDevices.getUserMedia({
+      audio:false,
+      video:{facingMode:{ideal:facing},width:{ideal:1920},height:{ideal:1920}}
+    }).then(function(s){
+      stream=s;video.srcObject=s;camMsg.hidden=true;
+      var pr=video.play();if(pr&&pr.catch)pr.catch(function(){});
+      return true;
+    }).catch(function(err){
+      var name=(err&&err.name)||"Error";
+      if(name==="NotAllowedError"||name==="SecurityError"){
+        camMessage("カメラの使用が許可されていません",
+          "ブラウザのアドレスバー左のアイコンやサイト設定でカメラを「許可」にして、もう一度お試しください。この画面が他のアプリ内に埋め込まれている場合は許可できないことがあります。");
+      }else if(name==="NotFoundError"||name==="OverconstrainedError"){
+        camMessage("カメラが見つかりません","使用できるカメラを検出できませんでした。");
+      }else if(name==="NotReadableError"){
+        camMessage("カメラを開けませんでした","ほかのアプリがカメラを使用中の可能性があります。閉じてからもう一度お試しください。");
+      }else{
+        camMessage("カメラを開けませんでした",(err&&err.message)||String(err));
+      }
+      return false;
+    });
+  }
+  function stopCamera(){
+    if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;video.srcObject=null;}
+  }
+  function switchCamera(){
+    facing=(facing==="environment")?"user":"environment";
+    stopCamera();ensureCamera(true);
+  }
+
+  function applyMirror(){overlay.classList.toggle("mirror",dir==="left");}
+  function applyGhost(){
+    ghost.style.opacity=(ghostOn&&ghost.getAttribute("src"))?(el("#ghostOpacity").value/100):0;
+  }
+
+  function loadRef(){
+    return getMeta("refId").then(function(id){
+      if(refURL){URL.revokeObjectURL(refURL);refURL=null;}
+      if(!id){ghost.removeAttribute("src");el("#refName").textContent="基準：なし";applyGhost();return;}
+      return getOne("photos",id).then(function(p){
+        if(!p){ghost.removeAttribute("src");el("#refName").textContent="基準：なし";applyGhost();return;}
+        refURL=URL.createObjectURL(p.blob);
+        ghost.src=refURL;
+        el("#refName").textContent="基準："+p.spot+" "+fmtShort(p.ts);
+        applyGhost();
+      });
+    });
+  }
+
+  function flashShutter(){
+    if(reduceMotion) return;
+    flash.classList.remove("go");void flash.offsetWidth;flash.classList.add("go");
+  }
+
+  function capture(){
+    if(!stream){ensureCamera(true);return;}
+    var vw=video.videoWidth,vh=video.videoHeight;
+    if(!vw||!vh){toast("カメラの準備中です");return;}
+    var box=viewfinder.getBoundingClientRect();
+    var targetAR=box.width/box.height;         // width / height of what you see
+    if(!isFinite(targetAR)||targetAR<=0) targetAR=3/4;
+    var videoAR=vw/vh,sx,sy,sw,sh;
+    if(videoAR>targetAR){sh=vh;sw=vh*targetAR;sx=(vw-sw)/2;sy=0;}
+    else{sw=vw;sh=vw/targetAR;sx=0;sy=(vh-sh)/2;}
+    var outH=Math.max(900,Math.min(1800,Math.round(sh)));
+    var outW=Math.round(outH*targetAR);
+
+    var cv=document.createElement("canvas");cv.width=outW;cv.height=outH;
+    var ctx=cv.getContext("2d");
+    if(dir==="left"){ctx.translate(outW,0);ctx.scale(-1,1);}   // flip back to canonical
+    ctx.drawImage(video,sx,sy,sw,sh,0,0,outW,outH);
+
+    var tw=Math.round(360),th=Math.round(360/targetAR);
+    var tc=document.createElement("canvas");tc.width=tw;tc.height=th;
+    tc.getContext("2d").drawImage(cv,0,0,tw,th);
+
+    Promise.all([
+      new Promise(function(r){cv.toBlob(r,"image/jpeg",0.9);}),
+      new Promise(function(r){tc.toBlob(r,"image/jpeg",0.72);})
+    ]).then(function(res){
+      var blob=res[0],thumb=res[1];
+      if(!db){toast("この端末では保存できません");return;}
+      var id=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():(Date.now()+"-"+Math.random().toString(16).slice(2));
+      var rec={
+        id:id,
+        spot:(spotInput.value.trim()||"未分類"),
+        ts:Date.now(),
+        lat:lastGPS?lastGPS.lat:null,
+        lng:lastGPS?lastGPS.lng:null,
+        acc:lastGPS?lastGPS.acc:null,
+        dir:dir,flipped:dir==="left",
+        memo:"",
+        w:outW,h:outH,
+        blob:blob,thumb:thumb
+      };
+      return put("photos",rec).then(function(){
+        return setMeta("lastSpot",rec.spot);
+      }).then(function(){
+        flashShutter();
+        setThumbJump(rec.thumb);
+        toast(rec.flipped?"反転補正して保存しました":"保存しました");
+        el("#hint").hidden=true;setMeta("hintSeen",1);
+      });
+    }).catch(function(e){toast("保存に失敗しました");console.error(e);});
+  }
+
+  function setThumbJump(blob){
+    var u=URL.createObjectURL(blob);
+    var old=thumbJump.dataset.url;
+    thumbJump.style.backgroundImage="url("+u+")";
+    thumbJump.dataset.url=u;
+    if(old)setTimeout(function(){URL.revokeObjectURL(old);},500);
+  }
+  function refreshThumbJump(){
+    if(!db)return;
+    getAll("photos").then(function(all){
+      if(!all.length)return;
+      all.sort(function(a,b){return b.ts-a.ts;});
+      setThumbJump(all[0].thumb);
+    });
+  }
+
+  /* ---------- GPS (best effort) ---------- */
+  var gpsWatch=null,lastGPS=null;
+  function setGps(kind,text){
+    var c=el("#chipGps");c.textContent=text;
+    c.classList.remove("ok","warn");
+    c.classList.add(kind==="ok"?"ok":"warn");
+  }
+  function startGPS(){
+    if(gpsWatch!=null)return;
+    if(!navigator.geolocation){setGps("warn","GPS 非対応");return;}
+    setGps("warn","GPS 取得中…");
+    gpsWatch=navigator.geolocation.watchPosition(function(p){
+      lastGPS={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy};
+      setGps("ok","GPS ±"+Math.round(p.coords.accuracy)+"m");
+    },function(err){
+      setGps("warn",err&&err.code===1?"位置情報オフ":"GPS 取得不可");
+    },{enableHighAccuracy:true,maximumAge:10000,timeout:20000});
+  }
+  function stopGPS(){if(gpsWatch!=null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;}}
+
+  /* ---------- views ---------- */
+  var VIEWS={camera:el("#view-camera"),library:el("#view-library"),slideshow:el("#view-slideshow")};
+  var current="camera";
+  function go(name){
+    current=name;
+    Object.keys(VIEWS).forEach(function(k){VIEWS[k].hidden=(k!==name);});
+    els(".tab").forEach(function(t){t.classList.toggle("is-active",t.dataset.view===name);});
+    if(name==="camera"){startGPS();ensureCamera(false);}
+    else{stopGPS();stopCamera();}
+    if(name!=="slideshow")pauseSS();
+    if(name==="library")renderLibrary();
+    if(name==="slideshow")initSlideshow();
+  }
+
+  /* ---------- library ---------- */
+  var libURLs=[];
+  function clearLibURLs(){libURLs.forEach(function(u){URL.revokeObjectURL(u);});libURLs=[];}
+  function renderLibrary(){
+    if(!db)return;
+    clearLibURLs();
+    var wrap=el("#libList");wrap.innerHTML="";
+    getAll("photos").then(function(all){
+      all.sort(function(a,b){return b.ts-a.ts;});
+      el("#libCount").textContent=all.length?(all.length+"枚 / "+new Set(all.map(function(p){return p.spot;})).size+"スポット"):"";
+      if(!all.length){
+        var e=document.createElement("div");e.className="empty";
+        e.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m4 18 5-4 4 3 3-2 4 3"/></svg>';
+        var t=document.createElement("div");t.textContent="まだ写真がありません。カメラタブで撮影しましょう。";
+        e.appendChild(t);wrap.appendChild(e);return;
+      }
+      var groups=new Map();
+      all.forEach(function(p){if(!groups.has(p.spot))groups.set(p.spot,[]);groups.get(p.spot).push(p);});
+      groups.forEach(function(items,spot){
+        var sec=document.createElement("div");sec.className="spot-group";
+        var h=document.createElement("h3");
+        var sp1=document.createElement("span");sp1.textContent=spot;
+        var sp2=document.createElement("span");sp2.className="n";sp2.textContent=items.length+"枚 · "+fmtRange(items);
+        h.appendChild(sp1);h.appendChild(sp2);sec.appendChild(h);
+        var g=document.createElement("div");g.className="grid-thumbs";
+        items.forEach(function(p){
+          var b=document.createElement("button");b.type="button";
+          var u=URL.createObjectURL(p.thumb);libURLs.push(u);
+          var im=document.createElement("img");im.src=u;im.alt="";
+          var d=document.createElement("span");d.className="d";d.textContent=fmtShort(p.ts);
+          b.appendChild(im);b.appendChild(d);
+          b.onclick=function(){openDetail(p.id);};
+          g.appendChild(b);
+        });
+        sec.appendChild(g);wrap.appendChild(sec);
+      });
+    });
+  }
+
+  /* ---------- detail sheet ---------- */
+  var detailURL=null;
+  function showSheet(){el("#sheet").hidden=false;}
+  function closeSheet(){
+    el("#sheet").hidden=true;
+    if(detailURL){URL.revokeObjectURL(detailURL);detailURL=null;}
+  }
+  el("#sheet").addEventListener("click",function(e){if(e.target===el("#sheet"))closeSheet();});
+
+  function openDetail(id){
+    getOne("photos",id).then(function(p){
+      if(!p)return;
+      if(detailURL)URL.revokeObjectURL(detailURL);
+      detailURL=URL.createObjectURL(p.blob);
+      var card=el("#sheetCard");card.innerHTML="";
+      var img=document.createElement("img");img.className="full";img.src=detailURL;img.alt="";
+      card.appendChild(img);
+
+      var dl=document.createElement("dl");dl.className="kv";
+      function row(k,vNode){var dt=document.createElement("dt");dt.textContent=k;var dd=document.createElement("dd");
+        if(typeof vNode==="string")dd.textContent=vNode;else dd.appendChild(vNode);dl.appendChild(dt);dl.appendChild(dd);}
+      row("日時",fmtFull(p.ts));
+      row("スポット",p.spot);
+      if(p.lat!=null){
+        var frag=document.createElement("span");
+        frag.textContent=p.lat.toFixed(6)+", "+p.lng.toFixed(6)+(p.acc?" (±"+Math.round(p.acc)+"m) ":" ");
+        var a=document.createElement("a");a.className="maplink";a.textContent="地図で開く ↗";
+        a.href="https://www.google.com/maps?q="+p.lat+","+p.lng;a.target="_blank";a.rel="noopener";
+        frag.appendChild(a);row("座標",frag);
+      }else{row("座標","記録なし");}
+      row("向き",p.flipped?"左向き（保存時に反転補正）":"右向き");
+      if(p.memo)row("メモ",p.memo);
+      card.appendChild(dl);
+
+      var acts=document.createElement("div");acts.className="sheet-actions";
+      var bRef=document.createElement("button");bRef.className="btn btn--primary";bRef.type="button";bRef.textContent="この写真を基準（ゴースト）にする";
+      bRef.onclick=function(){setMeta("refId",p.id).then(loadRef).then(function(){closeSheet();toast("基準写真に設定しました");go("camera");});};
+      var bShare=document.createElement("button");bShare.className="btn";bShare.type="button";bShare.textContent="共有";
+      bShare.onclick=function(){sharePhoto(p);};
+      var bDel=document.createElement("button");bDel.className="btn btn--danger";bDel.type="button";bDel.textContent="削除";
+      bDel.onclick=function(){
+        if(confirm("この写真を削除しますか？（元に戻せません）")){
+          delOne("photos",p.id).then(function(){
+            return getMeta("refId");
+          }).then(function(rid){
+            if(rid===p.id)return setMeta("refId",null).then(loadRef);
+          }).then(function(){closeSheet();renderLibrary();refreshThumbJump();});
+        }
+      };
+      acts.appendChild(bRef);acts.appendChild(bShare);acts.appendChild(bDel);
+      card.appendChild(acts);
+      showSheet();
+    });
+  }
+
+  function sharePhoto(p){
+    try{
+      var file=new File([p.blob],"tobidashi-"+p.ts+".jpg",{type:"image/jpeg"});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){
+        navigator.share({files:[file],text:p.spot+" "+fmtFull(p.ts)}).catch(function(){});
+      }else{toast("この端末では共有できません");}
+    }catch(e){toast("この端末では共有できません");}
+  }
+
+  /* ---------- slideshow ---------- */
+  var ssImg=el("#ssImg"),ssList=[],ssIdx=0,ssTimer=null,ssPlaying=false,ssURL=null,ssPreURL=null;
+  function initSlideshow(){
+    if(!db)return;
+    getAll("photos").then(function(all){
+      var seen={},spots=[];
+      all.forEach(function(p){if(!seen[p.spot]){seen[p.spot]=1;spots.push(p.spot);}});
+      spots.sort();
+      var sel=el("#ssSpot");var prev=sel.value;sel.innerHTML="";
+      var oAll=document.createElement("option");oAll.value="__all";oAll.textContent="すべてのスポット";sel.appendChild(oAll);
+      spots.forEach(function(s){var o=document.createElement("option");o.value=s;o.textContent=s;sel.appendChild(o);});
+      if(prev&&(prev==="__all"||spots.indexOf(prev)>=0))sel.value=prev;
+      buildSSList();
+    });
+  }
+  function buildSSList(){
+    if(!db)return;
+    getAll("photos").then(function(all){
+      var spot=el("#ssSpot").value;
+      var list=all.filter(function(p){return spot==="__all"||p.spot===spot;});
+      list.sort(function(a,b){return a.ts-b.ts;}); // oldest first = time-lapse
+      ssList=list;ssIdx=0;
+      renderDots();
+      if(!list.length){
+        ssImg.removeAttribute("src");
+        el("#ssCaption").textContent="写真がありません";
+        el("#ssIndex").textContent="";
+        return;
+      }
+      showSS(0);
+    });
+  }
+  function renderDots(){
+    var box=el("#ssDots");box.innerHTML="";
+    if(ssList.length<2||ssList.length>80)return;
+    for(var i=0;i<ssList.length;i++){var d=document.createElement("i");if(i===ssIdx)d.className="on";box.appendChild(d);}
+  }
+  function showSS(i){
+    if(!ssList.length)return;
+    ssIdx=(i%ssList.length+ssList.length)%ssList.length;
+    var p=ssList[ssIdx];
+    if(ssURL)URL.revokeObjectURL(ssURL);
+    ssURL=URL.createObjectURL(p.blob);
+    if(!reduceMotion)ssImg.style.opacity="0";
+    ssImg.onload=function(){ssImg.style.opacity="1";};
+    ssImg.src=ssURL;
+    el("#ssCaption").textContent=p.spot+" · "+fmtFull(p.ts);
+    el("#ssIndex").textContent=(ssIdx+1)+" / "+ssList.length;
+    els("#ssDots i").forEach(function(d,k){d.classList.toggle("on",k===ssIdx);});
+    if(ssPreURL){URL.revokeObjectURL(ssPreURL);ssPreURL=null;}
+    if(ssList.length>1){
+      var n=ssList[(ssIdx+1)%ssList.length];
+      ssPreURL=URL.createObjectURL(n.blob);
+      var im=new Image();im.src=ssPreURL;
+    }
+  }
+  function playSS(){
+    if(ssList.length<2){toast("2枚以上でスライドショーできます");return;}
+    ssPlaying=true;el("#ssPlay").textContent="⏸";
+    clearTimeout(ssTimer);
+    var step=function(){
+      var loop=el("#ssLoop").checked;
+      if(ssIdx+1>=ssList.length&&!loop){pauseSS();return;}
+      showSS(ssIdx+1);
+      ssTimer=setTimeout(step,parseInt(el("#ssInterval").value,10));
+    };
+    ssTimer=setTimeout(step,parseInt(el("#ssInterval").value,10));
+  }
+  function pauseSS(){ssPlaying=false;el("#ssPlay").textContent="▶";clearTimeout(ssTimer);}
+
+  /* ---------- backup ---------- */
+  function openBackup(){
+    var card=el("#sheetCard");card.innerHTML="";
+    var h=document.createElement("h3");h.className="sheet-h";h.textContent="バックアップ";
+    var p=document.createElement("p");p.className="muted-p";
+    p.textContent="写真はこの端末のブラウザ内（IndexedDB）にのみ保存されます。ブラウザのデータを消去すると失われます。ときどき JSON に書き出して保管してください。";
+    var acts=document.createElement("div");acts.className="sheet-actions";
+    var bx=document.createElement("button");bx.className="btn btn--primary";bx.type="button";bx.textContent="すべて書き出す（JSON）";
+    var bi=document.createElement("button");bi.className="btn";bi.type="button";bi.textContent="ファイルから読み込む";
+    var stat=document.createElement("p");stat.className="muted-p";stat.id="bStat";stat.style.margin="12px 0 0";
+    bx.onclick=function(){exportAll(stat);};
+    bi.onclick=function(){el("#importFile").click();};
+    acts.appendChild(bx);acts.appendChild(bi);
+    card.appendChild(h);card.appendChild(p);card.appendChild(acts);card.appendChild(stat);
+    showSheet();
+  }
+  function saveFile(filename,str){
+    var blob=new Blob([str],{type:"application/json"});
+    var useCap=window.claude&&typeof window.claude.use==="function";
+    var fallback=function(){
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=filename;
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(function(){URL.revokeObjectURL(a.href);},5000);
+    };
+    if(!useCap){fallback();return Promise.resolve();}
+    return window.claude.use("downloads").then(function(dl){
+      if(!dl){fallback();return;}
+      return dl.save({filename:filename,data:blob}).catch(function(err){
+        if(err&&err.code==="declined")return;
+        fallback();
+      });
+    }).catch(fallback);
+  }
+  function exportAll(stat){
+    if(!db)return;
+    getAll("photos").then(function(all){
+      stat.textContent=all.length+"枚を変換中…";
+      var chain=Promise.resolve([]);
+      all.forEach(function(p){
+        chain=chain.then(function(acc){
+          return Promise.all([blobToDataURL(p.blob),blobToDataURL(p.thumb)]).then(function(r){
+            acc.push({id:p.id,spot:p.spot,ts:p.ts,lat:p.lat,lng:p.lng,acc:p.acc,dir:p.dir,flipped:p.flipped,memo:p.memo,w:p.w,h:p.h,blob:r[0],thumb:r[1]});
+            return acc;
+          });
+        });
+      });
+      chain.then(function(photos){
+        var json=JSON.stringify({app:"tobidashi-teiten",version:1,exported:Date.now(),photos:photos});
+        return saveFile("tobidashi-backup-"+fmtStamp()+".json",json).then(function(){
+          stat.textContent=all.length+"枚を書き出しました（約 "+(json.length/1048576).toFixed(1)+" MB）";
+        });
+      });
+    });
+  }
+  el("#importFile").addEventListener("change",function(e){
+    var file=e.target.files&&e.target.files[0];e.target.value="";
+    if(!file||!db)return;
+    var stat=el("#bStat");if(stat)stat.textContent="読み込み中…";
+    file.text().then(function(text){
+      var data=JSON.parse(text);
+      if(!data||!Array.isArray(data.photos))throw new Error("形式が正しくありません");
+      var added=0;var chain=Promise.resolve();
+      data.photos.forEach(function(p){
+        chain=chain.then(function(){
+          return getOne("photos",p.id).then(function(exists){
+            if(exists)return;
+            var rec={id:p.id,spot:p.spot||"未分類",ts:p.ts||Date.now(),lat:p.lat==null?null:p.lat,lng:p.lng==null?null:p.lng,
+              acc:p.acc==null?null:p.acc,dir:p.dir||"right",flipped:!!p.flipped,memo:p.memo||"",w:p.w||0,h:p.h||0,
+              blob:dataURLtoBlob(p.blob),thumb:dataURLtoBlob(p.thumb)};
+            added++;return put("photos",rec);
+          });
+        });
+      });
+      return chain.then(function(){
+        if(stat)stat.textContent=added+"枚を読み込みました";
+        toast(added+"枚を読み込みました");
+        refreshThumbJump();
+      });
+    }).catch(function(err){
+      if(stat)stat.textContent="読み込めませんでした："+err.message;
+      else toast("読み込めませんでした");
+    });
+  });
+
+  /* ---------- bindings ---------- */
+  function bind(){
+    els(".tab").forEach(function(t){t.addEventListener("click",function(){go(t.dataset.view);});});
+    el("#btnBackup").addEventListener("click",openBackup);
+
+    shutter.addEventListener("click",capture);
+    el("#switchCam").addEventListener("click",switchCamera);
+    thumbJump.addEventListener("click",function(){go("library");});
+
+    el("#chipDir").addEventListener("click",function(){
+      dir=(dir==="right")?"left":"right";
+      this.setAttribute("aria-pressed",dir==="left"?"true":"false");
+      this.textContent=dir==="left"?"◀ 左向き":"▶ 右向き";
+      applyMirror();
+    });
+    el("#chipGrid").addEventListener("click",function(){
+      gridOn=!gridOn;this.setAttribute("aria-pressed",gridOn?"true":"false");
+      grid.classList.toggle("off",!gridOn);
+    });
+    el("#chipGhost").addEventListener("click",function(){
+      ghostOn=!ghostOn;this.setAttribute("aria-pressed",ghostOn?"true":"false");
+      el("#ghostPanel").hidden=!ghostOn;applyGhost();
+    });
+    el("#ghostOpacity").addEventListener("input",applyGhost);
+    el("#btnPickRef").addEventListener("click",function(){go("library");toast("基準にしたい写真を選んでください");});
+    el("#btnClearRef").addEventListener("click",function(){setMeta("refId",null).then(loadRef).then(function(){toast("基準を解除しました");});});
+
+    spotInput.addEventListener("change",function(){setMeta("lastSpot",spotInput.value.trim());});
+
+    el("#ssSpot").addEventListener("change",function(){pauseSS();buildSSList();});
+    el("#ssInterval").addEventListener("change",function(){if(ssPlaying){pauseSS();playSS();}});
+    el("#ssPrev").addEventListener("click",function(){pauseSS();showSS(ssIdx-1);});
+    el("#ssNext").addEventListener("click",function(){pauseSS();showSS(ssIdx+1);});
+    el("#ssPlay").addEventListener("click",function(){ssPlaying?pauseSS():playSS();});
+
+    document.addEventListener("visibilitychange",function(){
+      if(document.hidden){stopCamera();stopGPS();pauseSS();}
+      else if(current==="camera"){startGPS();ensureCamera(false);}
+    });
+    document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!el("#sheet").hidden)closeSheet();});
+  }
+
+  /* ---------- init ---------- */
+  bind();
+  applyMirror();
+  openDB().then(function(d){
+    db=d;
+    return Promise.all([getMeta("lastSpot"),getMeta("hintSeen"),loadRef()]);
+  }).then(function(r){
+    if(r[0])spotInput.value=r[0];
+    if(r[1])el("#hint").hidden=true;
+    refreshThumbJump();
+  }).catch(function(err){
+    console.error(err);
+    banner("この端末では写真を保存できません（プライベートモード等）。撮影の確認のみ可能です。");
+  }).then(function(){
+    go("camera");
+  });
+})();
+</script>

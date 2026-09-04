@@ -142,10 +142,10 @@
   .grid{position:absolute;inset:0;width:100%;height:100%}
   .grid.off{opacity:0}
   .ghost{
-    position:absolute;inset:0;width:100%;height:100%;
-    object-fit:cover;opacity:0;
-    transition:opacity .18s ease;
+    position:absolute;inset:0;opacity:0;
+    transition:opacity .18s ease;pointer-events:none;
   }
+  .ghost img{width:100%;height:100%;object-fit:contain;display:block}
   @media (prefers-reduced-motion:reduce){.ghost{transition:none}}
 
   .vf-top{
@@ -186,6 +186,37 @@
     background:transparent;color:#fff;font-family:var(--f-body);
     font-size:11px;font-weight:700;padding:6px 9px;border-radius:8px;cursor:pointer;
   }
+  .ghost-panel .gp-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex-basis:100%}
+  .ghost-panel .gp-lab{font-weight:700;opacity:.8}
+  .ghost-panel .gp-op{display:flex;align-items:center;gap:8px;font-weight:700;flex-basis:100%}
+  .ghost-panel .gp-op input[type=range]{flex:1;accent-color:var(--accent)}
+  .seg{
+    appearance:none;border:1.5px solid rgba(255,255,255,.5);background:transparent;color:#fff;
+    font-family:var(--f-body);font-size:11px;font-weight:700;padding:6px 12px;border-radius:999px;cursor:pointer;
+  }
+  .seg[aria-pressed="true"]{background:#fff;color:#161310;border-color:#fff}
+
+  /* ---- crop / ghost-area editor ---- */
+  .cropm{
+    position:fixed;inset:0;z-index:70;background:#0c0b0a;
+    display:flex;flex-direction:column;gap:10px;
+    padding:12px 12px calc(12px + env(safe-area-inset-bottom));
+  }
+  .cropm-head{color:#fff;font-family:var(--f-display);font-weight:700;font-size:15px;text-align:center}
+  .cropm-stage{
+    position:relative;flex:1;min-height:0;
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;touch-action:none;
+  }
+  .cropm-stage img{max-width:100%;max-height:100%;object-fit:contain;display:block;user-select:none;-webkit-user-select:none;pointer-events:none}
+  .cropbox{position:absolute;border:2px solid var(--accent);box-shadow:0 0 0 9999px rgba(0,0,0,.58);cursor:move}
+  .cropbox .ch{position:absolute;width:28px;height:28px;border-radius:50%;background:var(--accent);border:2px solid #fff}
+  .cropbox .ch[data-h="nw"]{left:-14px;top:-14px}
+  .cropbox .ch[data-h="ne"]{right:-14px;top:-14px}
+  .cropbox .ch[data-h="sw"]{left:-14px;bottom:-14px}
+  .cropbox .ch[data-h="se"]{right:-14px;bottom:-14px}
+  .cropm-tip{color:rgba(255,255,255,.75);font-size:12px;line-height:1.6;text-align:center;margin:0}
+  .cropm-bar{display:flex;gap:8px}
 
   .cam-msg{
     position:absolute;inset:0;z-index:5;
@@ -418,7 +449,7 @@
               <path d="M150 176v48M126 200h48" stroke-width="1.7"/>
             </g>
           </svg>
-          <img class="ghost" id="ghost" alt="">
+          <div class="ghost" id="ghostWrap"><img id="ghostImg" alt=""></div>
         </div>
 
         <div class="vf-top">
@@ -429,11 +460,19 @@
         </div>
 
         <div class="ghost-panel" id="ghostPanel" hidden>
-          <label>透明度
-            <input type="range" id="ghostOpacity" min="0" max="80" value="38" aria-label="ゴーストの透明度">
+          <div class="gp-row">
+            <span class="gp-lab">表示</span>
+            <button class="seg" id="gmOutline" type="button" aria-pressed="true">輪郭</button>
+            <button class="seg" id="gmPhoto" type="button" aria-pressed="false">写真</button>
+          </div>
+          <label class="gp-op">濃さ
+            <input type="range" id="ghostOpacity" min="10" max="95" value="60" aria-label="ゴーストの濃さ">
           </label>
-          <button class="btn-mini" id="btnPickRef" type="button">基準を選ぶ</button>
-          <button class="btn-mini" id="btnClearRef" type="button">解除</button>
+          <div class="gp-row">
+            <button class="btn-mini" id="btnPickRef" type="button">基準を選ぶ</button>
+            <button class="btn-mini" id="btnCropRef" type="button">範囲を調整</button>
+            <button class="btn-mini" id="btnClearRef" type="button">解除</button>
+          </div>
           <span class="ref-name" id="refName">基準：なし</span>
         </div>
 
@@ -508,6 +547,23 @@
 <div class="sheet" id="sheet" hidden><div class="sheet-card" id="sheetCard"></div></div>
 <input id="importFile" type="file" accept="application/json,.json" hidden>
 
+<div class="cropm" id="cropModal" hidden>
+  <div class="cropm-head">飛び出し君を枠で囲う</div>
+  <div class="cropm-stage" id="cropStage">
+    <img id="cropImg" alt="">
+    <div class="cropbox" id="cropBox">
+      <i class="ch" data-h="nw"></i><i class="ch" data-h="ne"></i>
+      <i class="ch" data-h="sw"></i><i class="ch" data-h="se"></i>
+    </div>
+  </div>
+  <p class="cropm-tip">枠の中をドラッグで移動、角をドラッグで拡大・縮小。飛び出し君だけを囲むと、その形の輪郭ゴーストになります。</p>
+  <div class="cropm-bar">
+    <button class="btn" id="cropAll" type="button">全体</button>
+    <button class="btn" id="cropCancel" type="button">キャンセル</button>
+    <button class="btn btn--primary" id="cropOK" type="button">決定</button>
+  </div>
+</div>
+
 <script>
 (function(){
   "use strict";
@@ -563,9 +619,11 @@
 
   /* ---------- camera ---------- */
   var video=el("#video"),viewfinder=el("#viewfinder"),overlay=el("#overlay"),
-      grid=el("#grid"),ghost=el("#ghost"),camMsg=el("#camMsg"),flash=el("#flash"),
+      grid=el("#grid"),ghostWrap=el("#ghostWrap"),ghostImg=el("#ghostImg"),
+      camMsg=el("#camMsg"),flash=el("#flash"),
       shutter=el("#shutter"),spotInput=el("#spotInput"),thumbJump=el("#thumbJump");
-  var stream=null,facing="environment",dir="right",gridOn=true,ghostOn=false,refURL=null;
+  var stream=null,facing="environment",dir="right",gridOn=true,ghostOn=false;
+  var refURL=null,ghostRenderURL=null,refImg=null,ghostMode="outline",ghostBox=null;
 
   function isSecure(){return window.isSecureContext!==false;}
 
@@ -620,21 +678,120 @@
 
   function applyMirror(){overlay.classList.toggle("mirror",dir==="left");}
   function applyGhost(){
-    ghost.style.opacity=(ghostOn&&ghost.getAttribute("src"))?(el("#ghostOpacity").value/100):0;
+    var on=ghostOn&&ghostImg.getAttribute("src");
+    ghostWrap.style.opacity=on?(el("#ghostOpacity").value/100):0;
+  }
+  function positionGhost(){
+    var b=ghostBox;
+    if(b){
+      ghostWrap.style.left=(b.x*100)+"%";ghostWrap.style.top=(b.y*100)+"%";
+      ghostWrap.style.width=(b.w*100)+"%";ghostWrap.style.height=(b.h*100)+"%";
+      ghostWrap.style.right="auto";ghostWrap.style.bottom="auto";
+    }else{
+      ghostWrap.style.left="0";ghostWrap.style.top="0";
+      ghostWrap.style.width="100%";ghostWrap.style.height="100%";
+      ghostWrap.style.right="auto";ghostWrap.style.bottom="auto";
+    }
+    ghostImg.style.objectFit=(!ghostBox&&ghostMode==="photo")?"cover":"contain";
+  }
+  function updateGhostModeUI(){
+    el("#gmPhoto").setAttribute("aria-pressed",ghostMode==="photo"?"true":"false");
+    el("#gmOutline").setAttribute("aria-pressed",ghostMode==="outline"?"true":"false");
+  }
+
+  // Sobel edge outline of a region -> transparent PNG data URL, bright lines
+  function makeOutline(img,bx,by,bw,bh){
+    var scale=Math.min(1,700/Math.max(bw,bh));
+    var w=Math.max(1,Math.round(bw*scale)),h=Math.max(1,Math.round(bh*scale));
+    var c=document.createElement("canvas");c.width=w;c.height=h;
+    var ctx=c.getContext("2d");
+    ctx.drawImage(img,bx,by,bw,bh,0,0,w,h);
+    var src;
+    try{src=ctx.getImageData(0,0,w,h);}catch(e){return c.toDataURL("image/png");}
+    var d=src.data,g=new Float32Array(w*h),i;
+    for(i=0;i<w*h;i++){g[i]=0.299*d[i*4]+0.587*d[i*4+1]+0.114*d[i*4+2];}
+    var out=ctx.createImageData(w,h),od=out.data,x,y,idx,gx,gy,m,a,o;
+    for(y=1;y<h-1;y++){
+      for(x=1;x<w-1;x++){
+        idx=y*w+x;
+        gx=-g[idx-w-1]-2*g[idx-1]-g[idx+w-1]+g[idx-w+1]+2*g[idx+1]+g[idx+w+1];
+        gy=-g[idx-w-1]-2*g[idx-w]-g[idx-w+1]+g[idx+w-1]+2*g[idx+w]+g[idx+w+1];
+        m=Math.sqrt(gx*gx+gy*gy);
+        a=m<38?0:Math.min(255,(m-38)*2.2);
+        o=idx*4;od[o]=140;od[o+1]=255;od[o+2]=110;od[o+3]=a;
+      }
+    }
+    ctx.putImageData(out,0,0);
+    return c.toDataURL("image/png");
+  }
+
+  var ghostGen=0;
+  function buildGhostSource(){
+    var gen=++ghostGen;
+    if(ghostRenderURL){URL.revokeObjectURL(ghostRenderURL);ghostRenderURL=null;}
+    if(!refImg){ghostImg.removeAttribute("src");applyGhost();return Promise.resolve();}
+    var sw=refImg.naturalWidth,sh=refImg.naturalHeight,b=ghostBox||{x:0,y:0,w:1,h:1};
+    var bx=Math.round(b.x*sw),by=Math.round(b.y*sh),
+        bw=Math.max(1,Math.round(b.w*sw)),bh=Math.max(1,Math.round(b.h*sh));
+    return new Promise(function(resolve){
+      if(ghostMode==="outline"){
+        var u=makeOutline(refImg,bx,by,bw,bh);
+        if(gen===ghostGen){ghostImg.src=u;applyGhost();}
+        resolve();return;
+      }
+      if(!ghostBox){
+        if(gen===ghostGen){ghostImg.src=refURL;applyGhost();}
+        resolve();return;
+      }
+      var c=document.createElement("canvas");
+      var scale=Math.min(1,1080/Math.max(bw,bh));
+      c.width=Math.max(1,Math.round(bw*scale));c.height=Math.max(1,Math.round(bh*scale));
+      c.getContext("2d").drawImage(refImg,bx,by,bw,bh,0,0,c.width,c.height);
+      c.toBlob(function(bl){
+        if(gen!==ghostGen||!bl){resolve();return;}
+        ghostRenderURL=URL.createObjectURL(bl);
+        ghostImg.src=ghostRenderURL;applyGhost();resolve();
+      },"image/jpeg",0.85);
+    });
   }
 
   function loadRef(){
-    return getMeta("refId").then(function(id){
+    return Promise.all([getMeta("refId"),getMeta("ghostBox"),getMeta("ghostMode")]).then(function(m){
+      var id=m[0];
+      ghostBox=m[1]||null;
+      ghostMode=(m[2]==="photo")?"photo":"outline";
+      updateGhostModeUI();
       if(refURL){URL.revokeObjectURL(refURL);refURL=null;}
-      if(!id){ghost.removeAttribute("src");el("#refName").textContent="基準：なし";applyGhost();return;}
+      if(ghostRenderURL){URL.revokeObjectURL(ghostRenderURL);ghostRenderURL=null;}
+      refImg=null;
+      if(!id){
+        ghostImg.removeAttribute("src");el("#refName").textContent="基準：なし";
+        positionGhost();applyGhost();return;
+      }
       return getOne("photos",id).then(function(p){
-        if(!p){ghost.removeAttribute("src");el("#refName").textContent="基準：なし";applyGhost();return;}
+        if(!p){
+          ghostImg.removeAttribute("src");el("#refName").textContent="基準：なし";
+          positionGhost();applyGhost();return;
+        }
+        el("#refName").textContent="基準："+p.spot+" "+fmtShort(p.ts)+(ghostBox?"（範囲指定）":"");
         refURL=URL.createObjectURL(p.blob);
-        ghost.src=refURL;
-        el("#refName").textContent="基準："+p.spot+" "+fmtShort(p.ts);
-        applyGhost();
+        return new Promise(function(res){
+          var im=new Image();
+          im.onload=function(){refImg=im;positionGhost();buildGhostSource().then(res);};
+          im.onerror=function(){res();};
+          im.src=refURL;
+        });
       });
     });
+  }
+
+  function setGhostMode(mode){
+    ghostMode=mode;updateGhostModeUI();
+    setMeta("ghostMode",mode);
+    buildGhostSource();
+  }
+  function clearRef(){
+    return Promise.all([setMeta("refId",null),setMeta("ghostBox",null)]).then(loadRef);
   }
 
   function flashShutter(){
@@ -818,8 +975,8 @@
       card.appendChild(dl);
 
       var acts=document.createElement("div");acts.className="sheet-actions";
-      var bRef=document.createElement("button");bRef.className="btn btn--primary";bRef.type="button";bRef.textContent="この写真を基準（ゴースト）にする";
-      bRef.onclick=function(){setMeta("refId",p.id).then(loadRef).then(function(){closeSheet();toast("基準写真に設定しました");go("camera");});};
+      var bRef=document.createElement("button");bRef.className="btn btn--primary";bRef.type="button";bRef.textContent="この写真をゴーストの基準にする";
+      bRef.onclick=function(){closeSheet();openCrop(p.id);};
       var bShare=document.createElement("button");bShare.className="btn";bShare.type="button";bShare.textContent="共有";
       bShare.onclick=function(){sharePhoto(p);};
       var bDel=document.createElement("button");bDel.className="btn btn--danger";bDel.type="button";bDel.textContent="削除";
@@ -828,7 +985,7 @@
           delOne("photos",p.id).then(function(){
             return getMeta("refId");
           }).then(function(rid){
-            if(rid===p.id)return setMeta("refId",null).then(loadRef);
+            if(rid===p.id)return clearRef();
           }).then(function(){closeSheet();renderLibrary();refreshThumbJump();});
         }
       };
@@ -917,12 +1074,99 @@
   }
   function pauseSS(){ssPlaying=false;el("#ssPlay").textContent="▶";clearTimeout(ssTimer);}
 
+  /* ---------- ghost area (crop) editor ---------- */
+  var crop={n:{x:0.2,y:0.12,w:0.6,h:0.76},imgBox:null,mode:null,sx:0,sy:0,start:null,forId:null,url:null};
+  function cropCompute(){
+    var st=el("#cropStage").getBoundingClientRect(),ib=el("#cropImg").getBoundingClientRect();
+    crop.imgBox={left:ib.left-st.left,top:ib.top-st.top,width:ib.width,height:ib.height};
+  }
+  function cropRender(){
+    var ib=crop.imgBox,n=crop.n,bx=el("#cropBox");
+    if(!ib)return;
+    bx.style.left=(ib.left+n.x*ib.width)+"px";
+    bx.style.top=(ib.top+n.y*ib.height)+"px";
+    bx.style.width=(n.w*ib.width)+"px";
+    bx.style.height=(n.h*ib.height)+"px";
+  }
+  function openCrop(photoId){
+    getOne("photos",photoId).then(function(p){
+      if(!p)return;
+      crop.forId=photoId;
+      Promise.all([getMeta("ghostBox"),getMeta("refId")]).then(function(m){
+        var b=m[0],rid=m[1];
+        crop.n=(b&&rid===photoId)?{x:b.x,y:b.y,w:b.w,h:b.h}:{x:0.2,y:0.12,w:0.6,h:0.76};
+        if(crop.url)URL.revokeObjectURL(crop.url);
+        crop.url=URL.createObjectURL(p.blob);
+        var im=el("#cropImg");
+        im.onload=function(){cropCompute();cropRender();};
+        im.src=crop.url;
+        el("#cropModal").hidden=false;
+        requestAnimationFrame(function(){cropCompute();cropRender();});
+      });
+    });
+  }
+  function closeCrop(){
+    el("#cropModal").hidden=true;
+    if(crop.url){URL.revokeObjectURL(crop.url);crop.url=null;}
+    crop.mode=null;
+  }
+  (function wireCrop(){
+    var stage=el("#cropStage");
+    stage.addEventListener("pointerdown",function(e){
+      var h=e.target.getAttribute&&e.target.getAttribute("data-h");
+      var onBox=e.target===el("#cropBox");
+      if(!h&&!onBox)return;
+      e.preventDefault();
+      try{stage.setPointerCapture(e.pointerId);}catch(_){}
+      crop.mode=h?("rz-"+h):"mv";
+      crop.sx=e.clientX;crop.sy=e.clientY;
+      crop.start={x:crop.n.x,y:crop.n.y,w:crop.n.w,h:crop.n.h};
+    });
+    stage.addEventListener("pointermove",function(e){
+      if(!crop.mode||!crop.imgBox||!crop.imgBox.width)return;
+      var ib=crop.imgBox,MIN=0.08;
+      var dx=(e.clientX-crop.sx)/ib.width,dy=(e.clientY-crop.sy)/ib.height;
+      var s=crop.start,n={x:s.x,y:s.y,w:s.w,h:s.h};
+      if(crop.mode==="mv"){
+        n.x=Math.min(1-s.w,Math.max(0,s.x+dx));
+        n.y=Math.min(1-s.h,Math.max(0,s.y+dy));
+      }else{
+        var west=crop.mode.indexOf("w")>=0,east=crop.mode.indexOf("e")>=0,
+            north=crop.mode.indexOf("n")>=0,south=crop.mode.indexOf("s")>=0;
+        if(west){var nx=Math.min(s.x+s.w-MIN,Math.max(0,s.x+dx));n.w=s.x+s.w-nx;n.x=nx;}
+        if(east){n.w=Math.min(1-s.x,Math.max(MIN,s.w+dx));}
+        if(north){var ny=Math.min(s.y+s.h-MIN,Math.max(0,s.y+dy));n.h=s.y+s.h-ny;n.y=ny;}
+        if(south){n.h=Math.min(1-s.y,Math.max(MIN,s.h+dy));}
+      }
+      crop.n=n;cropRender();
+    });
+    function end(e){if(crop.mode){crop.mode=null;try{stage.releasePointerCapture(e.pointerId);}catch(_){}}}
+    stage.addEventListener("pointerup",end);
+    stage.addEventListener("pointercancel",end);
+    el("#cropAll").addEventListener("click",function(){crop.n={x:0,y:0,w:1,h:1};cropRender();});
+    el("#cropCancel").addEventListener("click",closeCrop);
+    el("#cropOK").addEventListener("click",function(){
+      var n=crop.n;
+      var box=(n.x<=0.002&&n.y<=0.002&&n.w>=0.998&&n.h>=0.998)?null:
+        {x:+n.x.toFixed(4),y:+n.y.toFixed(4),w:+n.w.toFixed(4),h:+n.h.toFixed(4)};
+      Promise.all([setMeta("refId",crop.forId),setMeta("ghostBox",box)]).then(function(){
+        closeCrop();
+        ghostOn=true;el("#chipGhost").setAttribute("aria-pressed","true");el("#ghostPanel").hidden=false;
+        return loadRef();
+      }).then(function(){
+        toast(box?"飛び出し君の範囲を設定しました":"全体をゴーストにしました");
+        if(current!=="camera")go("camera");
+      });
+    });
+  })();
+
   /* ---------- backup ---------- */
   function openBackup(){
     var card=el("#sheetCard");card.innerHTML="";
-    var h=document.createElement("h3");h.className="sheet-h";h.textContent="バックアップ";
+    var h=document.createElement("h3");h.className="sheet-h";h.textContent="保存とバックアップ";
+    var use=document.createElement("p");use.className="muted-p";use.id="bUsage";use.textContent="使用量を確認中…";
     var p=document.createElement("p");p.className="muted-p";
-    p.textContent="写真はこの端末のブラウザ内（IndexedDB）にのみ保存されます。ブラウザのデータを消去すると失われます。ときどき JSON に書き出して保管してください。";
+    p.textContent="写真はこの端末のブラウザ内（IndexedDB）にだけ保存され、サーバーには送信されません。ブラウザの履歴やサイトデータを消すと失われます。iPhoneのSafariでは、ホーム画面に追加していないと数日でデータが消えることがあります（対策：共有 →「ホーム画面に追加」）。ときどき下のボタンでJSONに書き出して保管してください。";
     var acts=document.createElement("div");acts.className="sheet-actions";
     var bx=document.createElement("button");bx.className="btn btn--primary";bx.type="button";bx.textContent="すべて書き出す（JSON）";
     var bi=document.createElement("button");bi.className="btn";bi.type="button";bi.textContent="ファイルから読み込む";
@@ -930,8 +1174,18 @@
     bx.onclick=function(){exportAll(stat);};
     bi.onclick=function(){el("#importFile").click();};
     acts.appendChild(bx);acts.appendChild(bi);
-    card.appendChild(h);card.appendChild(p);card.appendChild(acts);card.appendChild(stat);
+    card.appendChild(h);card.appendChild(use);card.appendChild(p);card.appendChild(acts);card.appendChild(stat);
     showSheet();
+    var estP=(navigator.storage&&navigator.storage.estimate)?navigator.storage.estimate():Promise.resolve(null);
+    Promise.all([db?getAll("photos"):Promise.resolve([]),estP]).then(function(r){
+      var list=r[0],est=r[1],bytes=0;
+      list.forEach(function(x){bytes+=((x.blob&&x.blob.size)||0)+((x.thumb&&x.thumb.size)||0);});
+      var t=list.length+"枚 ・ 写真データ 約"+(bytes/1048576).toFixed(1)+" MB";
+      if(est&&est.usage!=null)t+="（アプリ全体の使用量 約"+(est.usage/1048576).toFixed(1)+" MB";
+      if(est&&est.quota!=null)t+=" / 端末の空き枠 約"+(est.quota/1073741824).toFixed(1)+" GB）";
+      else if(est&&est.usage!=null)t+="）";
+      el("#bUsage").textContent=t;
+    }).catch(function(){el("#bUsage").textContent="";});
   }
   function saveFile(filename,str){
     var blob=new Blob([str],{type:"application/json"});
@@ -1025,8 +1279,16 @@
       el("#ghostPanel").hidden=!ghostOn;applyGhost();
     });
     el("#ghostOpacity").addEventListener("input",applyGhost);
+    el("#gmOutline").addEventListener("click",function(){setGhostMode("outline");});
+    el("#gmPhoto").addEventListener("click",function(){setGhostMode("photo");});
     el("#btnPickRef").addEventListener("click",function(){go("library");toast("基準にしたい写真を選んでください");});
-    el("#btnClearRef").addEventListener("click",function(){setMeta("refId",null).then(loadRef).then(function(){toast("基準を解除しました");});});
+    el("#btnCropRef").addEventListener("click",function(){
+      getMeta("refId").then(function(id){
+        if(!id){toast("先に「基準を選ぶ」で写真を選んでください");return;}
+        openCrop(id);
+      });
+    });
+    el("#btnClearRef").addEventListener("click",function(){clearRef().then(function(){toast("基準を解除しました");});});
 
     spotInput.addEventListener("change",function(){setMeta("lastSpot",spotInput.value.trim());});
 
@@ -1040,7 +1302,12 @@
       if(document.hidden){stopCamera();stopGPS();pauseSS();}
       else if(current==="camera"){startGPS();ensureCamera(false);}
     });
-    document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!el("#sheet").hidden)closeSheet();});
+    document.addEventListener("keydown",function(e){
+      if(e.key!=="Escape")return;
+      if(!el("#cropModal").hidden)closeCrop();
+      else if(!el("#sheet").hidden)closeSheet();
+    });
+    window.addEventListener("resize",function(){if(!el("#cropModal").hidden){cropCompute();cropRender();}});
   }
 
   /* ---------- init ---------- */

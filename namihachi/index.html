@@ -265,7 +265,7 @@
           <div class="formula-head"><label for="patternFormula">模様の数式 W(θ,u)</label><button type="button" id="patternReset">既定に戻す</button></div>
           <input type="text" id="patternFormula" spellcheck="false" autocomplete="off">
           <p class="err" id="patternErr"></p>
-          <p class="vars">変数: theta(0〜2π), u, n, amp, twist, rings, PI, TAU</p>
+          <p class="vars">変数: theta(0〜2π), u, x=cos(theta), y=sin(theta), z=u, n, amp, twist, rings, PI, TAU<br>関数: voronoiRidge(x,y,wrap) セル状の網目 ／ phyllotaxis(theta,u,count,falloff) ひまわり配置の凸点</p>
         </div>
       </fieldset>
 
@@ -331,16 +331,76 @@
     {name:"花びら", pattern:"amp*pow(max(0,sin(n*theta/2 + twist*u*TAU)),2)", n:6,amp:7,twist:1,rings:6, bulge:14,power:0.85},
     {name:"ギザギザ", pattern:"amp*(2/PI)*asin(sin(n*theta + twist*u*TAU))", n:14,amp:3,twist:0,rings:6, bulge:2,power:1},
     {name:"そろばん", pattern:"amp*sin(rings*u*TAU)", n:0,amp:4,twist:0,rings:8, bulge:4,power:1.1},
-    {name:"格子", pattern:"amp*sin(n*theta)*sin(rings*u*TAU)", n:10,amp:3,twist:0,rings:8, bulge:5,power:1.2}
+    {name:"格子", pattern:"amp*sin(n*theta)*sin(rings*u*TAU)", n:10,amp:3,twist:0,rings:8, bulge:5,power:1.2},
+    {name:"ジャイロイド", pattern:"amp*(sin(n*x)*cos(rings*y) + sin(rings*y)*cos(twist*z*12) + sin(twist*z*12)*cos(n*x))",
+      n:10,amp:4,twist:1,rings:10, bulge:3,power:1.1,
+      note:"TPMS（極小曲面）風の連続した波打つ曲面。切削でも金型でも作れず、積層でしか成立しません。"},
+    {name:"ボロノイ", pattern:"amp*voronoiRidge(n*theta/TAU, rings*u, n)",
+      n:10,amp:5,twist:0,rings:6, bulge:4,power:1.15, segTheta:120,segH:100,
+      note:"乱数で生成したセルの境界だけを盛り上げた網目。1つ1つの形が不規則で、型を作る発想自体が成立ちません。"},
+    {name:"フィボナッチ", pattern:"amp*phyllotaxis(theta, u, n, rings)",
+      n:18,amp:6,twist:0,rings:10, bulge:8,power:0.9, segTheta:120,segH:120,
+      note:"黄金角（約137.5°）で1つずつ回転させながら並べた、ひまわりの種と同じ配置の凸点。"}
   ];
 
   /* ---------------- formula compiler ---------------- */
   var TAU=Math.PI*2;
+  var GOLDEN_ANGLE=Math.PI*(3-Math.sqrt(5)); // ~137.5°, the phyllotaxis angle
+
+  // deterministic pseudo-random 0..1 from integer cell coords (no state, tiles cleanly)
+  function hash2(ix,iy){
+    var s=Math.sin(ix*127.1+iy*311.7)*43758.5453123;
+    return s-Math.floor(s);
+  }
+  // cellular/"Worley" noise: distance to the nearest and 2nd-nearest random seed
+  // point in a unit grid. wrap>0 makes it repeat seamlessly every `wrap` cells
+  // along x (used for the theta direction, so the pattern joins at the seam).
+  function cellDist(px,py,wrap){
+    var ix=Math.floor(px), iy=Math.floor(py), f1=1e9, f2=1e9;
+    for(var dx=-1;dx<=1;dx++){
+      for(var dy=-1;dy<=1;dy++){
+        var cx=ix+dx, cy=iy+dy;
+        var hx=wrap>0?(((cx%wrap)+wrap)%wrap):cx;
+        var seedx=cx+hash2(hx,cy), seedy=cy+hash2(hx+31.7,cy-17.3);
+        var ddx=seedx-px, ddy=seedy-py, d=Math.sqrt(ddx*ddx+ddy*ddy);
+        if(d<f1){f2=f1;f1=d;}else if(d<f2){f2=d;}
+      }
+    }
+    return {f1:f1,f2:f2};
+  }
+  // thin ridge network right at the boundary between Voronoi cells (turtle-shell /
+  // dragon-skin look) — a lattice this irregular has no mould or cutter, only a
+  // print head that draws exactly what the formula says, layer by layer.
+  function voronoiRidge(px,py,wrap){
+    var d=cellDist(px,py,Math.round(wrap));
+    return Math.max(0,1-(d.f2-d.f1)*2.4);
+  }
+  // sunflower-seed-head spiral: `count` bumps placed one golden-angle turn apart
+  // going up the wall, each a soft Gaussian bump.
+  function phyllotaxis(theta,u,count,falloff){
+    count=Math.max(1,Math.round(count));
+    // bump radius scales with how tightly packed the spiral is, so dots stay
+    // distinct whether there are 4 of them or 28
+    var spacing=1/count;
+    var fu=Math.max(0.008, spacing*0.55*Math.max(0.3,falloff/14));
+    var ft=Math.max(0.12, 2.2*fu);
+    var sum=0;
+    for(var i=0;i<count;i++){
+      var ti=(i*GOLDEN_ANGLE)%TAU;
+      var ui=(i+0.5)*spacing;
+      var dt=Math.abs(theta-ti); if(dt>Math.PI) dt=TAU-dt;
+      var du=u-ui;
+      var d2=(dt/ft)*(dt/ft)+(du/fu)*(du/fu);
+      sum+=Math.exp(-d2*3);
+    }
+    return Math.min(1,sum);
+  }
+
+  var FORMULA_ARGS=["theta","u","x","y","z","base","top","power","bulge","n","amp","twist","rings","TAU","voronoiRidge","phyllotaxis"];
   function compileFormula(expr){
     try{
-      var fn=new Function("theta","u","base","top","power","bulge","n","amp","twist","rings","TAU",
-        "with(Math){ return (" + expr + "); }");
-      var t=fn(0.3,0.5,40,50,1,5,8,4,1,6,TAU);
+      var fn=new Function(FORMULA_ARGS.join(","), "with(Math){ return (" + expr + "); }");
+      var t=fn(0.3,0.5, 1,0,0.5, 40,50,1,5, 8,4,1,6, TAU, voronoiRidge, phyllotaxis);
       if(typeof t!=="number"||!isFinite(t)) throw new Error("数値になりません");
       return {fn:fn,error:null};
     }catch(e){
@@ -350,12 +410,16 @@
   var profileC=compileFormula(P.profileFormula);
   var patternC=compileFormula(P.patternFormula);
 
+  function callFormula(fn,theta,u){
+    var x=Math.cos(theta), y=Math.sin(theta), z=u;
+    return fn(theta,u,x,y,z,P.rBase,P.rTop,P.rPower,P.rBulge,P.pN,P.pAmp,P.pTwist,P.pRings,TAU,voronoiRidge,phyllotaxis);
+  }
   function evalProfile(u){
-    var v=profileC.fn(0,u,P.rBase,P.rTop,P.rPower,P.rBulge,P.pN,P.pAmp,P.pTwist,P.pRings,TAU);
+    var v=callFormula(profileC.fn,0,u);
     return isFinite(v)?v:P.rBase;
   }
   function evalPattern(theta,u){
-    var v=patternC.fn(theta,u,P.rBase,P.rTop,P.rPower,P.rBulge,P.pN,P.pAmp,P.pTwist,P.pRings,TAU);
+    var v=callFormula(patternC.fn,theta,u);
     return isFinite(v)?v:0;
   }
 
@@ -399,14 +463,19 @@
   var scene=new THREE.Scene();
   var camera=new THREE.PerspectiveCamera(38,1,1,5000);
 
-  var hemi=new THREE.HemisphereLight(0xffffff,0x20221e,0.55);
+  var ambient=new THREE.AmbientLight(0xffffff,0.55);
+  scene.add(ambient);
+  var hemi=new THREE.HemisphereLight(0xffffff,0x40443c,0.5);
   scene.add(hemi);
-  var key=new THREE.DirectionalLight(0xffffff,0.9);
+  var key=new THREE.DirectionalLight(0xffffff,0.75);
   key.position.set(120,220,160);
   scene.add(key);
-  var fill=new THREE.DirectionalLight(0xffffff,0.35);
+  var fill=new THREE.DirectionalLight(0xffffff,0.45);
   fill.position.set(-160,60,-120);
   scene.add(fill);
+  var back=new THREE.DirectionalLight(0xffffff,0.35);
+  back.position.set(0,-120,-200);
+  scene.add(back);
 
   var grid3d=new THREE.GridHelper(400,20,0x39494a,0x263032);
   scene.add(grid3d);
@@ -427,6 +496,10 @@
     currentGeom=buildMesh();
     geometry.setIndex(currentGeom.indices);
     geometry.setAttribute("position", new THREE.Float32BufferAttribute(currentGeom.positions,3));
+    // drop any previous normal attribute first: computeVertexNormals() reuses
+    // an existing one in place rather than resizing it, which corrupts lighting
+    // whenever the vertex count changes (e.g. the resolution sliders moved).
+    if(geometry.attributes.normal) geometry.deleteAttribute("normal");
     geometry.computeVertexNormals();
     geometry.computeBoundingSphere();
 
@@ -562,15 +635,26 @@
 
   /* ---------------- presets ---------------- */
   var presetBar=el("#presets");
-  PRESETS.forEach(function(pr){
+  PRESETS.forEach(function(pr,idx){
+    if(idx===6){
+      var lab=document.createElement("p");
+      lab.className="vars";
+      lab.style.flexBasis="100%";
+      lab.style.margin="2px 0 -2px";
+      lab.textContent="↓ 3Dプリントでしか作れない幾何学・数学モチーフ（ホバーで説明）";
+      presetBar.appendChild(lab);
+    }
     var b=document.createElement("button");
     b.className="preset";b.type="button";b.textContent=pr.name;
+    if(pr.note) b.title=pr.note;
     b.addEventListener("click",function(){
       el("#patternFormula").value=pr.pattern;
       var c=compileFormula(pr.pattern);
       if(!c.error){patternC=c;el("#patternFormula").classList.remove("bad");el("#patternErr").textContent="";}
       setSlider("pN",pr.n);setSlider("pAmp",pr.amp);setSlider("pTwist",pr.twist);setSlider("pRings",pr.rings);
       setSlider("rBulge",pr.bulge);setSlider("rPower",pr.power);
+      if(pr.segTheta!=null) setSlider("segTheta",pr.segTheta);
+      if(pr.segH!=null) setSlider("segH",pr.segH);
       scheduleRebuild();
       toast(pr.name+"にしました");
     });

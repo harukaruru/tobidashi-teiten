@@ -405,12 +405,14 @@
               <ellipse cx="55" cy="138" rx="13" ry="11" fill="none" stroke="#5cff8f" stroke-width="6"/>
               <circle cx="107" cy="49" r="38" fill="none" stroke="#5cff8f" stroke-width="6"/>
             </svg>
+            <img id="stencilImg" alt="" hidden>
           </div>
         </div>
 
         <div class="vf-top">
           <button class="chip" id="chipDir" aria-pressed="false" type="button">▶ 右向き</button>
           <button class="chip" id="chipStencil" aria-pressed="true" type="button">型紙</button>
+          <button class="chip" id="chipStenSrc" type="button">画像を使う</button>
           <span class="chip chip--status warn" id="chipGps">GPS —</span>
         </div>
 
@@ -419,7 +421,7 @@
       </div>
 
       <div class="cam-controls">
-        <p class="hint" id="hint">カメラ中央の型紙（走る子どものシルエット）に実物を重ねると、毎回同じ位置・同じ大きさで撮影できます。「型紙」でオン／オフ。逆向きは ◀ で型紙が左右反転し、撮影後に自動で反転補正して保存します。</p>
+        <p class="hint" id="hint">カメラ中央の型紙に実物を重ねると、毎回同じ位置・同じ大きさで撮影できます。「型紙」でオン／オフ。「画像を使う」で自分の端末にある画像に差し替え可能（この端末だけに保存され、アプリ本体には含まれません）。逆向きは ◀ で型紙が左右反転し、撮影後に自動で反転補正して保存します。</p>
         <input class="spot-input" id="spotInput" type="text" autocomplete="off" placeholder="スポット名（例：みなみ小学校前）">
         <div class="shutter-row">
           <button class="thumb-jump" id="thumbJump" type="button" aria-label="ライブラリを開く"></button>
@@ -484,6 +486,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="sheet" id="sheet" hidden><div class="sheet-card" id="sheetCard"></div></div>
 <input id="importFile" type="file" accept="application/json,.json" hidden>
+<input id="stenFile" type="file" accept="image/*" hidden>
 
 <script>
 (function(){
@@ -540,11 +543,11 @@
 
   /* ---------- camera ---------- */
   var video=el("#video"),viewfinder=el("#viewfinder"),overlay=el("#overlay"),
-      stencil=el("#stencil"),
+      stencil=el("#stencil"),stencilArt=el("#stencilArt"),stencilImgEl=el("#stencilImg"),
       camMsg=el("#camMsg"),flash=el("#flash"),
       shutter=el("#shutter"),spotInput=el("#spotInput"),thumbJump=el("#thumbJump");
   var stream=null,facing="environment",dir="right";
-  var stenOn=true;
+  var stenOn=true,stenCustom=false,stenImgURL=null;
 
   function isSecure(){return window.isSecureContext!==false;}
 
@@ -599,18 +602,54 @@
 
   function applyMirror(){overlay.classList.toggle("mirror",dir==="left");}
 
-  // ---- centred figure guide ("型紙"): fixed size/opacity, on/off only ----
+  // ---- centred figure guide ("型紙"): fixed size/opacity, on/off + optional
+  // custom image. A custom image is stored ONLY in this browser's IndexedDB
+  // (never part of the app's source / never published) so a viewer can use
+  // their own reference art for an exact match without it being redistributed.
   var STEN_OPACITY=0.55;
   function applyStencil(){
     stencil.style.opacity=stenOn?STEN_OPACITY:0;
     el("#chipStencil").setAttribute("aria-pressed",stenOn?"true":"false");
   }
+  function updateStenSrcLabel(){
+    el("#chipStenSrc").textContent=stenCustom?"標準にもどす":"画像を使う";
+  }
+  function showStencilImg(url){
+    if(stenImgURL){URL.revokeObjectURL(stenImgURL);stenImgURL=null;}
+    if(url){
+      stenImgURL=url;stencilImgEl.src=url;stencilImgEl.hidden=false;stencilArt.hidden=true;
+      stenCustom=true;
+    }else{
+      stencilImgEl.removeAttribute("src");stencilImgEl.hidden=true;stencilArt.hidden=false;
+      stenCustom=false;
+    }
+    updateStenSrcLabel();
+  }
   function loadStencil(){
     if(!db){applyStencil();return Promise.resolve();}
-    return getMeta("stenOn").then(function(v){
-      stenOn=(v==null)?true:!!v;
-      applyStencil();
+    return Promise.all([getMeta("stenOn"),getMeta("stenImgSet")]).then(function(m){
+      stenOn=(m[0]==null)?true:!!m[0];
+      if(m[1]){
+        return getOne("meta","stenImgBlob").then(function(r){
+          showStencilImg(r&&r.v?URL.createObjectURL(r.v):null);
+          applyStencil();
+        });
+      }
+      showStencilImg(null);applyStencil();
     });
+  }
+  function setStencilFromFile(file){
+    if(!file)return;
+    if(!/^image\//.test(file.type)){toast("画像ファイルを選んでください");return;}
+    showStencilImg(URL.createObjectURL(file));
+    if(db){setMeta("stenImgSet",1);setMeta("stenImgBlob",file);}
+    stenOn=true;applyStencil();setMeta("stenOn",true);
+    toast("この画像を型紙にしました（この端末だけに保存）");
+  }
+  function resetStencilImg(){
+    showStencilImg(null);
+    if(db){setMeta("stenImgSet",null);delOne("meta","stenImgBlob");}
+    toast("標準の図案にもどしました");
   }
 
   function flashShutter(){
@@ -999,6 +1038,13 @@
     });
     el("#chipStencil").addEventListener("click",function(){
       stenOn=!stenOn;applyStencil();setMeta("stenOn",stenOn);
+    });
+    el("#chipStenSrc").addEventListener("click",function(){
+      if(stenCustom)resetStencilImg();else el("#stenFile").click();
+    });
+    el("#stenFile").addEventListener("change",function(e){
+      var f=e.target.files&&e.target.files[0];e.target.value="";
+      setStencilFromFile(f);
     });
 
     spotInput.addEventListener("change",function(){setMeta("lastSpot",spotInput.value.trim());});

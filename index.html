@@ -412,7 +412,6 @@
         <div class="vf-top">
           <button class="chip" id="chipDir" aria-pressed="false" type="button">▶ 右向き</button>
           <button class="chip" id="chipStencil" aria-pressed="true" type="button">型紙</button>
-          <button class="chip" id="chipStenSrc" type="button">画像を使う</button>
           <span class="chip chip--status warn" id="chipGps">GPS —</span>
         </div>
 
@@ -421,7 +420,7 @@
       </div>
 
       <div class="cam-controls">
-        <p class="hint" id="hint">カメラ中央の型紙に実物を重ねると、毎回同じ位置・同じ大きさで撮影できます。「型紙」でオン／オフ。「画像を使う」で自分の端末にある画像に差し替え可能（この端末だけに保存され、アプリ本体には含まれません）。逆向きは ◀ で型紙が左右反転し、撮影後に自動で反転補正して保存します。</p>
+        <p class="hint" id="hint">カメラ中央の型紙に実物を重ねると、毎回同じ位置・同じ大きさで撮影できます。「型紙」でオン／オフ。画像は右上 ⤓ の「型紙の画像」から自分の端末にあるものに差し替えられます（一度設定すれば以後は自動表示）。逆向きは ◀ で型紙が左右反転し、撮影後に自動で反転補正して保存します。</p>
         <input class="spot-input" id="spotInput" type="text" autocomplete="off" placeholder="スポット名（例：みなみ小学校前）">
         <div class="shutter-row">
           <button class="thumb-jump" id="thumbJump" type="button" aria-label="ライブラリを開く"></button>
@@ -611,9 +610,6 @@
     stencil.style.opacity=stenOn?STEN_OPACITY:0;
     el("#chipStencil").setAttribute("aria-pressed",stenOn?"true":"false");
   }
-  function updateStenSrcLabel(){
-    el("#chipStenSrc").textContent=stenCustom?"標準にもどす":"画像を使う";
-  }
   function showStencilImg(url){
     if(stenImgURL){URL.revokeObjectURL(stenImgURL);stenImgURL=null;}
     if(url){
@@ -623,7 +619,6 @@
       stencilImgEl.removeAttribute("src");stencilImgEl.hidden=true;stencilArt.hidden=false;
       stenCustom=false;
     }
-    updateStenSrcLabel();
   }
   function loadStencil(){
     if(!db){applyStencil();return Promise.resolve();}
@@ -644,7 +639,8 @@
     showStencilImg(URL.createObjectURL(file));
     if(db){setMeta("stenImgSet",1);setMeta("stenImgBlob",file);}
     stenOn=true;applyStencil();setMeta("stenOn",true);
-    toast("この画像を型紙にしました（この端末だけに保存）");
+    closeSheet();
+    toast("型紙を設定しました。次回からも自動で表示されます。");
   }
   function resetStencilImg(){
     showStencilImg(null);
@@ -930,7 +926,22 @@
   function openBackup(){
     var card=el("#sheetCard");card.innerHTML="";
     var h=document.createElement("h3");h.className="sheet-h";h.textContent="保存とバックアップ";
+
+    var h2=document.createElement("h3");h2.className="sheet-h";h2.style.fontSize="14px";h2.textContent="型紙の画像";
+    var sp=document.createElement("p");sp.className="muted-p";
+    sp.textContent="選んだ画像がカメラ中央の型紙になります。一度設定すれば、以後はカメラ画面を開くたびに自動で表示され、選び直す操作は不要です。画像はこの端末のブラウザ内だけに保存され、アプリ本体やサーバーには含まれません。";
+    var sActs=document.createElement("div");sActs.className="sheet-actions";
+    var bSten=document.createElement("button");bSten.className="btn btn--primary";bSten.type="button";
+    bSten.textContent=stenCustom?"標準にもどす":"画像を選ぶ";
+    bSten.onclick=function(){
+      if(stenCustom){resetStencilImg();closeSheet();}
+      else el("#stenFile").click();
+    };
+    sActs.appendChild(bSten);
+    card.appendChild(h);card.appendChild(h2);card.appendChild(sp);card.appendChild(sActs);
+
     var use=document.createElement("p");use.className="muted-p";use.id="bUsage";use.textContent="使用量を確認中…";
+    use.style.marginTop="18px";
     var p=document.createElement("p");p.className="muted-p";
     p.textContent="写真はこの端末のブラウザ内（IndexedDB）にだけ保存され、サーバーには送信されません。ブラウザの履歴やサイトデータを消すと失われます。iPhoneのSafariでは、ホーム画面に追加していないと数日でデータが消えることがあります（対策：共有 →「ホーム画面に追加」）。ときどき下のボタンでJSONに書き出して保管してください。";
     var acts=document.createElement("div");acts.className="sheet-actions";
@@ -940,7 +951,7 @@
     bx.onclick=function(){exportAll(stat);};
     bi.onclick=function(){el("#importFile").click();};
     acts.appendChild(bx);acts.appendChild(bi);
-    card.appendChild(h);card.appendChild(use);card.appendChild(p);card.appendChild(acts);card.appendChild(stat);
+    card.appendChild(use);card.appendChild(p);card.appendChild(acts);card.appendChild(stat);
     showSheet();
     var estP=(navigator.storage&&navigator.storage.estimate)?navigator.storage.estimate():Promise.resolve(null);
     Promise.all([db?getAll("photos"):Promise.resolve([]),estP]).then(function(r){
@@ -1038,9 +1049,6 @@
     });
     el("#chipStencil").addEventListener("click",function(){
       stenOn=!stenOn;applyStencil();setMeta("stenOn",stenOn);
-    });
-    el("#chipStenSrc").addEventListener("click",function(){
-      if(stenCustom)resetStencilImg();else el("#stenFile").click();
     });
     el("#stenFile").addEventListener("change",function(e){
       var f=e.target.files&&e.target.files[0];e.target.value="";

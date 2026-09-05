@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>綾杢 Ayamoku</title>
+<meta name="theme-color" content="#e9e4da">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=M+PLUS+1:wght@400;500;700;800&display=swap">
+<style>
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  img{max-width:100%}
+  html{-webkit-text-size-adjust:100%}
+
+  :root{
+    --ground:#e9e4da;
+    --panel:#f4f1ea;
+    --panel-2:#e6e0d2;
+    --field:#fcfbf7;
+    --ink:#2a231a;
+    --muted:#6c6151;
+    --line:#d2c9b6;
+    --accent:#b0522a;
+    --accent-ink:#fff6f0;
+    --wave:#3c6e63;
+    --warn:#a8641c;
+    --wall:#cdc7bc;
+    --shadow:0 1px 0 rgba(42,35,26,.06), 0 14px 30px -18px rgba(42,35,26,.45);
+    --f-body:"M PLUS 1","Hiragino Kaku Gothic ProN",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+    color-scheme:light dark;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#181513;
+      --panel:#211c18;
+      --panel-2:#292219;
+      --field:#1c1815;
+      --ink:#efe7da;
+      --muted:#a3947e;
+      --line:#3c332a;
+      --accent:#e07a4c;
+      --accent-ink:#1a0d07;
+      --wave:#6cb3a3;
+      --warn:#e0b23c;
+      --wall:#2c2620;
+      --shadow:0 1px 0 rgba(0,0,0,.3), 0 18px 38px -20px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#181513;
+    --panel:#211c18;
+    --panel-2:#292219;
+    --field:#1c1815;
+    --ink:#efe7da;
+    --muted:#a3947e;
+    --line:#3c332a;
+    --accent:#e07a4c;
+    --accent-ink:#1a0d07;
+    --wave:#6cb3a3;
+    --warn:#e0b23c;
+    --wall:#2c2620;
+    --shadow:0 1px 0 rgba(0,0,0,.3), 0 18px 38px -20px rgba(0,0,0,.8);
+  }
+
+  html,body{height:100%}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--f-body);font-size:14.5px;line-height:1.6}
+  ::selection{background:var(--accent);color:var(--accent-ink)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  .app{height:100dvh;display:flex;flex-direction:column}
+
+  header{
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:12px 18px;border-bottom:1px solid var(--line);background:var(--panel);
+  }
+  .brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .brand h1{font-family:var(--f-body);font-weight:800;font-size:19px;margin:0;letter-spacing:.01em}
+  .brand h1 small{font-weight:500;font-size:12px;color:var(--muted);margin-left:2px}
+  .brand p{margin:0;font-size:12px;color:var(--muted)}
+  header .spacer{flex:1}
+  .toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tbtn{
+    appearance:none;cursor:pointer;font-family:var(--f-body);font-weight:700;font-size:12.5px;
+    padding:9px 13px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel-2);color:var(--ink);
+  }
+  .tbtn--primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .tbtn:active{transform:translateY(1px)}
+
+  main{flex:1;display:grid;grid-template-columns:320px 1fr;min-height:0}
+  @media (max-width:860px){
+    main{display:flex;flex-direction:column;min-height:0}
+    .stage-wrap{flex:1 1 auto;order:-1;min-height:44vh}
+    .panel{flex:0 0 auto;max-height:56dvh}
+  }
+
+  .panel{overflow-y:auto;min-height:0;padding:16px 16px 40px;border-right:1px solid var(--line)}
+  @media (max-width:860px){.panel{border-right:0;border-top:1px solid var(--line)}}
+
+  fieldset{border:0;margin:0 0 20px;padding:0}
+  legend{font-family:var(--f-body);font-weight:800;font-size:13px;margin:0 0 10px;padding:0}
+
+  .ctrl{margin-bottom:12px}
+  .ctrl-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:5px}
+  .ctrl-head label{font-size:12.5px;font-weight:700}
+  .numwrap{display:flex;align-items:baseline;gap:4px;font-family:var(--f-mono)}
+  .numwrap input[type="number"]{
+    width:64px;font-family:var(--f-mono);font-size:12.5px;text-align:right;
+    padding:3px 6px;border-radius:6px;border:1.5px solid var(--line);background:var(--field);color:var(--ink);
+  }
+  .numwrap .unit{font-size:10.5px;color:var(--muted)}
+  input[type="range"]{width:100%;accent-color:var(--accent);height:20px}
+
+  .seedrow{display:flex;gap:8px;align-items:center;margin-bottom:16px}
+  .seedrow input[type="number"]{
+    flex:1;font-family:var(--f-mono);font-size:16px;font-weight:600;text-align:center;
+    padding:9px 8px;border-radius:10px;border:1.5px solid var(--line);background:var(--field);color:var(--ink);
+  }
+  .dice{
+    flex:0 0 auto;width:42px;height:42px;border-radius:10px;font-size:18px;
+    border:1.5px solid var(--line);background:var(--panel-2);cursor:pointer;
+  }
+  .dice:active{transform:translateY(1px)}
+
+  .colorrow{display:flex;gap:14px;margin-bottom:6px}
+  .colorrow label{display:flex;flex-direction:column;gap:5px;font-size:11.5px;color:var(--muted);font-weight:700}
+  input[type="color"]{width:44px;height:32px;padding:0;border-radius:8px;border:1.5px solid var(--line);background:none;cursor:pointer}
+
+  .hint{font-size:11.5px;color:var(--muted);line-height:1.7;border-left:3px solid var(--wave);padding-left:10px;margin:4px 0 0}
+
+  .stage-wrap{
+    position:relative;overflow:auto;min-height:0;min-width:0;padding:34px;
+    background:
+      radial-gradient(ellipse at 30% 0%, rgba(255,255,255,.35), transparent 60%),
+      var(--wall-color, #cdc7bc);
+  }
+  .stage-inner{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start;justify-content:center;min-height:100%}
+  .wpanel{
+    background:#000; /* covered fully by svg content */
+    box-shadow:0 2px 0 rgba(0,0,0,.15), 0 22px 34px -16px rgba(0,0,0,.5), 0 3px 10px rgba(0,0,0,.25);
+    border-radius:3px;overflow:hidden;
+  }
+  .wpanel svg{display:block;width:min(46vw,320px);height:auto}
+  @media (max-width:860px){ .wpanel svg{width:min(80vw,340px)} }
+
+  .toast{
+    position:fixed;left:50%;bottom:22px;z-index:60;transform:translateX(-50%) translateY(8px);
+    background:var(--ink);color:var(--ground);padding:9px 18px;border-radius:999px;
+    font-size:12.5px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <div class="brand">
+      <h1>綾杢<small>Ayamoku</small></h1>
+      <p>数字の組み合わせから幾何学模様が生まれる、壁掛けパネルジェネレーター</p>
+    </div>
+    <div class="spacer"></div>
+    <div class="toolbar">
+      <button class="tbtn" id="btnSvg" type="button">SVGを書き出す</button>
+      <button class="tbtn tbtn--primary" id="btnPng" type="button">PNGを書き出す</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="panel">
+      <div class="seedrow">
+        <input type="number" id="seed" value="1234" aria-label="シード番号">
+        <button class="dice" id="btnDice" type="button" title="シードをシャッフル" aria-label="シードをシャッフル">🎲</button>
+      </div>
+
+      <fieldset>
+        <legend>構成</legend>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="panelCount">パネル枚数</label>
+            <span class="numwrap"><input type="number" id="panelCountNum"><span class="unit">枚</span></span></div>
+          <input type="range" id="panelCount" min="1" max="5" step="1">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="pathCount">折れ線の数</label>
+            <span class="numwrap"><input type="number" id="pathCountNum"></span></div>
+          <input type="range" id="pathCount" min="1" max="6" step="1">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>模様</legend>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="angle">角度</label>
+            <span class="numwrap"><input type="number" id="angleNum"><span class="unit">°</span></span></div>
+          <input type="range" id="angle" min="10" max="80" step="1">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="spacing">線の間隔</label>
+            <span class="numwrap"><input type="number" id="spacingNum"></span></div>
+          <input type="range" id="spacing" min="3" max="18" step="0.5">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="bandLevels">本数（密度）</label>
+            <span class="numwrap"><input type="number" id="bandLevelsNum"></span></div>
+          <input type="range" id="bandLevels" min="3" max="22" step="1">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="jitter">折れの乱れ</label>
+            <span class="numwrap"><input type="number" id="jitterNum" step="0.05"></span></div>
+          <input type="range" id="jitter" min="0" max="1" step="0.05">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>色</legend>
+        <div class="colorrow">
+          <label>木の色<input type="color" id="woodColor" value="#a86a3d"></label>
+          <label>木目の濃淡<input type="color" id="woodColor2" value="#7a4a26"></label>
+          <label>壁の色<input type="color" id="wallColor" value="#cdc7bc"></label>
+        </div>
+      </fieldset>
+
+      <p class="hint">同じ数字の組み合わせなら、何度生成しても必ず同じ模様になります。数字を1つ変えるだけで模様は大きく変わります。SVGはレーザーカット・CNC加工の下絵としてそのまま使えます。</p>
+    </div>
+
+    <div class="stage-wrap" id="stageWrap">
+      <div class="stage-inner" id="stageInner"></div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+  var el=function(s,r){return (r||document).querySelector(s);};
+
+  var toastT;
+  function toast(msg){
+    var t=el("#toast");t.textContent=msg;t.classList.add("show");
+    clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove("show");},2200);
+  }
+
+  var PW=300, PH=440; // panel SVG coordinate space
+
+  /* ---------------- seeded RNG ---------------- */
+  function mulberry32(seed){
+    var s=seed>>>0;
+    return function(){
+      s=(s+0x6D2B79F5)|0;
+      var t=Math.imul(s^(s>>>15), 1|s);
+      t=(t+Math.imul(t^(t>>>7), 61|t))^t;
+      return ((t^(t>>>14))>>>0)/4294967296;
+    };
+  }
+
+  /* ---------------- geometry helpers ---------------- */
+  function lerpPt(a,b,t){return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t];}
+  function lineIntersect(p1,p2,p3,p4){
+    var d=(p2[0]-p1[0])*(p4[1]-p3[1]) - (p2[1]-p1[1])*(p4[0]-p3[0]);
+    if(Math.abs(d)<1e-9) return null;
+    var t=((p3[0]-p1[0])*(p4[1]-p3[1]) - (p3[1]-p1[1])*(p4[0]-p3[0]))/d;
+    return [p1[0]+t*(p2[0]-p1[0]), p1[1]+t*(p2[1]-p1[1])];
+  }
+  function dist(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1]);}
+
+  // offset an open polyline by `off` (positive = to the left of travel), with
+  // capped miter joins so sharp reversals don't spike off to infinity.
+  function offsetPolyline(points, off){
+    if(Math.abs(off)<1e-6) return points.slice();
+    var segs=[];
+    for(var i=0;i<points.length-1;i++){
+      var a=points[i], b=points[i+1];
+      var dx=b[0]-a[0], dy=b[1]-a[1], len=Math.hypot(dx,dy)||1;
+      var nx=-dy/len, ny=dx/len;
+      segs.push({oa:[a[0]+nx*off,a[1]+ny*off], ob:[b[0]+nx*off,b[1]+ny*off]});
+    }
+    if(!segs.length) return points.slice();
+    var out=[segs[0].oa];
+    var cap=Math.abs(off)*5+2;
+    for(var i=0;i<segs.length-1;i++){
+      var s1=segs[i], s2=segs[i+1];
+      var ip=lineIntersect(s1.oa,s1.ob,s2.oa,s2.ob);
+      if(ip && dist(ip,s1.ob)<=cap){ out.push(ip); }
+      else { out.push(s1.ob); out.push(s2.oa); }
+    }
+    out.push(segs[segs.length-1].ob);
+    return out;
+  }
+
+  // Sutherland-Hodgman clip of a (possibly non-convex/self-intersecting)
+  // polygon against an axis-aligned rectangle.
+  function clipPoly(poly, xmin,ymin,xmax,ymax){
+    function clipEdge(pts, inside, intersect){
+      var out=[];
+      for(var i=0;i<pts.length;i++){
+        var cur=pts[i], prev=pts[(i-1+pts.length)%pts.length];
+        var ci=inside(cur), pi=inside(prev);
+        if(ci){ if(!pi) out.push(intersect(prev,cur)); out.push(cur); }
+        else if(pi){ out.push(intersect(prev,cur)); }
+      }
+      return out;
+    }
+    poly=clipEdge(poly, function(p){return p[0]>=xmin;}, function(a,b){return lerpPt(a,b,(xmin-a[0])/((b[0]-a[0])||1e-9));});
+    poly=clipEdge(poly, function(p){return p[0]<=xmax;}, function(a,b){return lerpPt(a,b,(xmax-a[0])/((b[0]-a[0])||1e-9));});
+    poly=clipEdge(poly, function(p){return p[1]>=ymin;}, function(a,b){return lerpPt(a,b,(ymin-a[1])/((b[1]-a[1])||1e-9));});
+    poly=clipEdge(poly, function(p){return p[1]<=ymax;}, function(a,b){return lerpPt(a,b,(ymax-a[1])/((b[1]-a[1])||1e-9));});
+    return poly;
+  }
+
+  function polyToPath(pts){
+    if(pts.length<3) return "";
+    var d="M"+pts[0][0].toFixed(2)+","+pts[0][1].toFixed(2);
+    for(var i=1;i<pts.length;i++) d+="L"+pts[i][0].toFixed(2)+","+pts[i][1].toFixed(2);
+    return d+"Z";
+  }
+
+  /* ---------------- pattern generation ---------------- */
+  function makeSkeleton(rng, angleDeg, jitter){
+    var angle=angleDeg*Math.PI/180;
+    var baseDir=rng()*Math.PI*2;
+    var cx=rng()*PW, cy=rng()*PH;
+    var backLen=Math.hypot(PW,PH)*0.9;
+    var segMin=Math.hypot(PW,PH)*(0.05+jitter*0.02);
+    var segMax=Math.hypot(PW,PH)*(0.16+jitter*0.22);
+
+    function walk(sign){
+      var pts=[[cx,cy]], cur=[cx,cy], useA=rng()<0.5, travelled=0;
+      while(travelled<backLen && pts.length<40){
+        var d=baseDir + sign*(useA?angle:-angle);
+        var segLen=segMin+rng()*(segMax-segMin);
+        var nxt=[cur[0]+Math.cos(d)*segLen*sign, cur[1]+Math.sin(d)*segLen*sign];
+        pts.push(nxt); cur=nxt; travelled+=segLen; useA=!useA;
+      }
+      return pts;
+    }
+    var fwd=walk(1), back=walk(-1);
+    back.reverse();
+    return back.concat(fwd.slice(1));
+  }
+
+  function buildPanelSVG(seed, opts){
+    var rng=mulberry32(seed>>>0);
+    var groups=[];
+    for(var p=0;p<opts.pathCount;p++){
+      var skel=makeSkeleton(rng, opts.angle, opts.jitter);
+      var tone = (rng()<0.5) ? opts.wood : opts.wood2;
+      var half=Math.ceil(opts.bandLevels/2);
+      var offsets=[];
+      for(var i=-half;i<=half;i++) offsets.push(offsetPolyline(skel, i*opts.spacing));
+      var bandsD=[];
+      for(var i=0;i<offsets.length-1;i++){
+        var bandIdx=i-half;
+        if(((bandIdx%2)+2)%2!==0) continue; // alternate filled / gap bands
+        var band=offsets[i].concat(offsets[i+1].slice().reverse());
+        var clipped=clipPoly(band, 0,0,PW,PH);
+        var d=polyToPath(clipped);
+        if(d) bandsD.push(d);
+      }
+      if(bandsD.length) groups.push({tone:tone, d:bandsD.join(" ")});
+    }
+    var svg='<svg viewBox="0 0 '+PW+' '+PH+'" xmlns="http://www.w3.org/2000/svg">';
+    svg+='<rect x="0" y="0" width="'+PW+'" height="'+PH+'" fill="'+opts.wall+'"/>';
+    groups.forEach(function(g){
+      svg+='<path d="'+g.d+'" fill="'+g.tone+'" fill-rule="nonzero"/>';
+    });
+    svg+='<rect x="0.75" y="0.75" width="'+(PW-1.5)+'" height="'+(PH-1.5)+'" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="1.5"/>';
+    svg+="</svg>";
+    return svg;
+  }
+
+  /* ---------------- params + render ---------------- */
+  var P={seed:1234,panelCount:3,pathCount:3,angle:45,spacing:7,bandLevels:10,jitter:0.5,
+    wood:"#a86a3d",wood2:"#7a4a26",wall:"#cdc7bc"};
+
+  function render(){
+    var wrap=el("#stageInner");
+    wrap.innerHTML="";
+    el("#stageWrap").style.setProperty("--wall-color", P.wall);
+    for(var i=0;i<P.panelCount;i++){
+      var seedI=(P.seed>>>0) + i*7919;
+      var svgStr=buildPanelSVG(seedI, P);
+      var box=document.createElement("div");
+      box.className="wpanel";
+      box.innerHTML=svgStr;
+      wrap.appendChild(box);
+    }
+  }
+
+  function bindParam(key,sliderId,numId,opts){
+    var r=el("#"+sliderId), n=el("#"+numId);
+    var dec=opts&&opts.decimals!=null?opts.decimals:0;
+    r.min=opts.min; r.max=opts.max; if(opts.step!=null){r.step=opts.step; n.step=opts.step;}
+    function set(v){
+      if(opts.min!=null) v=Math.max(opts.min,v);
+      if(opts.max!=null) v=Math.min(opts.max,v);
+      P[key]=v; r.value=v; n.value=dec?v.toFixed(dec):v;
+      render();
+    }
+    r.addEventListener("input",function(){set(+r.value);});
+    n.addEventListener("change",function(){set(+n.value||0);});
+    set(P[key]);
+  }
+  bindParam("panelCount","panelCount","panelCountNum",{min:1,max:5,step:1});
+  bindParam("pathCount","pathCount","pathCountNum",{min:1,max:6,step:1});
+  bindParam("angle","angle","angleNum",{min:10,max:80,step:1});
+  bindParam("spacing","spacing","spacingNum",{min:3,max:18,step:0.5,decimals:1});
+  bindParam("bandLevels","bandLevels","bandLevelsNum",{min:3,max:22,step:1});
+  bindParam("jitter","jitter","jitterNum",{min:0,max:1,step:0.05,decimals:2});
+
+  var seedInput=el("#seed");
+  seedInput.value=P.seed;
+  function setSeed(v){ P.seed=Math.round(v)||0; seedInput.value=P.seed; render(); }
+  seedInput.addEventListener("change",function(){setSeed(+seedInput.value);});
+  el("#btnDice").addEventListener("click",function(){
+    setSeed(Math.floor(Math.random()*1000000));
+    toast("シード "+P.seed+" に変更しました");
+  });
+
+  ["woodColor:wood","woodColor2:wood2","wallColor:wall"].forEach(function(pair){
+    var ids=pair.split(":"), id=ids[0], key=ids[1];
+    var input=el("#"+id);
+    input.addEventListener("input",function(){ P[key]=input.value; render(); });
+  });
+
+  /* ---------------- export ---------------- */
+  function combinedSVG(){
+    var gap=20, x=0;
+    var svgs=[];
+    for(var i=0;i<P.panelCount;i++){
+      var seedI=(P.seed>>>0)+i*7919;
+      svgs.push({x:x, inner:buildPanelSVGInner(seedI,P)});
+      x+=PW+gap;
+    }
+    var totalW=x-gap, totalH=PH;
+    var out='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+totalW+' '+totalH+'" width="'+totalW+'" height="'+totalH+'">';
+    svgs.forEach(function(s){
+      out+='<g transform="translate('+s.x+',0)">'+s.inner+'</g>';
+    });
+    out+="</svg>";
+    return out;
+  }
+  function buildPanelSVGInner(seed,opts){
+    var full=buildPanelSVG(seed,opts);
+    return full.replace(/^<svg[^>]*>/,"").replace(/<\/svg>$/,"");
+  }
+  function pad(n){return String(n).padStart(2,"0");}
+  function stamp(){var d=new Date();return d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+"-"+pad(d.getHours())+pad(d.getMinutes());}
+
+  el("#btnSvg").addEventListener("click",function(){
+    var svgStr=combinedSVG();
+    var blob=new Blob([svgStr],{type:"image/svg+xml"});
+    var a=document.createElement("a");
+    a.href=URL.createObjectURL(blob); a.download="ayamoku-"+P.seed+"-"+stamp()+".svg";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){URL.revokeObjectURL(a.href);},5000);
+    toast("SVGを書き出しました");
+  });
+
+  el("#btnPng").addEventListener("click",function(){
+    var svgStr=combinedSVG();
+    var svgBlob=new Blob([svgStr],{type:"image/svg+xml;charset=utf-8"});
+    var url=URL.createObjectURL(svgBlob);
+    var img=new Image();
+    img.onload=function(){
+      var scale=3;
+      var c=document.createElement("canvas");
+      c.width=img.width*scale; c.height=img.height*scale;
+      var ctx=c.getContext("2d");
+      ctx.fillStyle=P.wall; ctx.fillRect(0,0,c.width,c.height);
+      ctx.drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob(function(blob){
+        var a=document.createElement("a");
+        a.href=URL.createObjectURL(blob); a.download="ayamoku-"+P.seed+"-"+stamp()+".png";
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function(){URL.revokeObjectURL(a.href);},5000);
+        toast("PNGを書き出しました");
+      },"image/png");
+    };
+    img.onerror=function(){ toast("PNGの書き出しに失敗しました"); URL.revokeObjectURL(url); };
+    img.src=url;
+  });
+
+  /* ---------------- init ---------------- */
+  render();
+})();
+</script>
+</body>
+</html>

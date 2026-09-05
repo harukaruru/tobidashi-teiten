@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>水紋 Suimon</title>
+<meta name="theme-color" content="#efece4">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Shippori+Mincho:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.138.3/three.min.js"></script>
+<style>
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  img{max-width:100%}
+  html{-webkit-text-size-adjust:100%}
+
+  :root{
+    --ground:#efece4;
+    --panel:#f7f5ee;
+    --panel-2:#e9e4d5;
+    --field:#fdfcf8;
+    --ink:#2b2822;
+    --muted:#726b5c;
+    --line:#d6cfba;
+    --accent:#a97e4f;
+    --accent-ink:#fff9f0;
+    --wave:#5c7268;
+    --warn:#a8641c;
+    --stage:#18110c;
+    --shadow:0 1px 0 rgba(43,40,34,.06), 0 14px 30px -18px rgba(43,40,34,.45);
+    --f-display:"Shippori Mincho",serif;
+    --f-body:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+    color-scheme:light dark;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#171512;
+      --panel:#1e1b17;
+      --panel-2:#262219;
+      --field:#1a1713;
+      --ink:#efe9dc;
+      --muted:#a3977f;
+      --line:#3a3327;
+      --accent:#d3a05f;
+      --accent-ink:#241608;
+      --wave:#7fa091;
+      --warn:#e0b23c;
+      --shadow:0 1px 0 rgba(0,0,0,.3), 0 18px 38px -20px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#171512;
+    --panel:#1e1b17;
+    --panel-2:#262219;
+    --field:#1a1713;
+    --ink:#efe9dc;
+    --muted:#a3977f;
+    --line:#3a3327;
+    --accent:#d3a05f;
+    --accent-ink:#241608;
+    --wave:#7fa091;
+    --warn:#e0b23c;
+    --shadow:0 1px 0 rgba(0,0,0,.3), 0 18px 38px -20px rgba(0,0,0,.8);
+  }
+
+  html,body{height:100%}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--f-body);font-size:14.5px;line-height:1.6}
+  ::selection{background:var(--accent);color:var(--accent-ink)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  .app{height:100dvh;display:flex;flex-direction:column}
+
+  header{
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:12px 18px;border-bottom:1px solid var(--line);background:var(--panel);
+  }
+  .brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .brand h1{font-family:var(--f-display);font-weight:700;font-size:21px;margin:0;letter-spacing:.02em}
+  .brand h1 small{font-family:var(--f-body);font-weight:500;font-size:12px;color:var(--muted);margin-left:4px}
+  .brand p{margin:0;font-size:12px;color:var(--muted)}
+  header .spacer{flex:1}
+  .toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tbtn{
+    appearance:none;cursor:pointer;font-family:var(--f-body);font-weight:700;font-size:12.5px;
+    padding:9px 13px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel-2);color:var(--ink);
+  }
+  .tbtn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .tbtn--primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .tbtn:active{transform:translateY(1px)}
+  input[type="color"]{width:34px;height:34px;padding:0;border-radius:9px;border:1.5px solid var(--line);background:none;cursor:pointer}
+
+  main{flex:1;display:grid;grid-template-columns:320px 1fr;min-height:0}
+  @media (max-width:860px){
+    main{display:flex;flex-direction:column;min-height:0}
+    .stage-wrap{flex:1 1 auto;order:-1;min-height:42vh}
+    .panel{flex:0 0 auto;max-height:58dvh}
+  }
+
+  .panel{overflow-y:auto;min-height:0;padding:16px 16px 40px;border-right:1px solid var(--line)}
+  @media (max-width:860px){.panel{border-right:0;border-top:1px solid var(--line)}}
+
+  fieldset{border:0;margin:0 0 20px;padding:0}
+  legend{font-family:var(--f-body);font-weight:800;font-size:13px;margin:0 0 10px;padding:0}
+
+  .maprow{margin-bottom:8px}
+  .clickmap{
+    position:relative;width:100%;aspect-ratio:var(--map-ar,0.75);
+    background:var(--field);border:1.5px solid var(--line);border-radius:10px;
+    cursor:crosshair;overflow:hidden;touch-action:none;
+  }
+  .clickmap svg{position:absolute;inset:0;width:100%;height:100%}
+  .maptools{display:flex;justify-content:space-between;align-items:center;margin-top:7px}
+  .maptools .cnt{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+  .maptools button{
+    appearance:none;background:none;border:0;color:var(--wave);font-family:var(--f-body);
+    font-weight:700;font-size:11.5px;cursor:pointer;padding:2px 4px;
+  }
+  .maphint{font-size:11px;color:var(--muted);margin:6px 0 0;line-height:1.6}
+
+  .ctrl{margin-bottom:12px}
+  .ctrl-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:5px}
+  .ctrl-head label{font-size:12.5px;font-weight:700}
+  .numwrap{display:flex;align-items:baseline;gap:4px;font-family:var(--f-mono)}
+  .numwrap input[type="number"]{
+    width:62px;font-family:var(--f-mono);font-size:12.5px;text-align:right;
+    padding:3px 6px;border-radius:6px;border:1.5px solid var(--line);background:var(--field);color:var(--ink);
+  }
+  .numwrap .unit{font-size:10.5px;color:var(--muted)}
+  input[type="range"]{width:100%;accent-color:var(--accent);height:20px}
+
+  .colorrow{display:flex;gap:14px;align-items:flex-start}
+  .colorrow label{display:flex;flex-direction:column;gap:5px;font-size:11.5px;color:var(--muted);font-weight:700}
+
+  .readouts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 18px}
+  .readouts div{background:var(--field);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+  .readouts .k{display:block;font-size:10px;color:var(--muted)}
+  .readouts .v{display:block;font-family:var(--f-mono);font-weight:600;font-size:14px;margin-top:2px}
+
+  .hint{font-size:11.5px;color:var(--muted);line-height:1.7;border-left:3px solid var(--wave);padding-left:10px;margin:4px 0 0}
+
+  .stage-wrap{position:relative;background:var(--stage);overflow:hidden}
+  #stage{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+  #stage:active{cursor:grabbing}
+  .stage-hud{
+    position:absolute;left:12px;bottom:12px;font-family:var(--f-mono);font-size:11px;color:#e7ddca;opacity:.85;pointer-events:none;
+  }
+  .stage-tip{
+    position:absolute;right:12px;bottom:12px;max-width:220px;text-align:right;
+    font-size:11px;color:#cabfa8;opacity:.8;pointer-events:none;line-height:1.6;
+  }
+
+  .toast{
+    position:fixed;left:50%;bottom:22px;z-index:60;transform:translateX(-50%) translateY(8px);
+    background:var(--ink);color:var(--ground);padding:9px 18px;border-radius:999px;
+    font-size:12.5px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <div class="brand">
+      <h1>水紋<small>Suimon</small></h1>
+      <p>波紋の中心を置くだけ。3Dプリントできる壁掛けレリーフパネル</p>
+    </div>
+    <div class="spacer"></div>
+    <div class="toolbar">
+      <input type="color" id="reliefColor" value="#e9e2d0" aria-label="プレビューの色">
+      <button class="tbtn" id="btnWire" type="button" aria-pressed="false">ワイヤーフレーム</button>
+      <button class="tbtn" id="btnSpin" type="button" aria-pressed="true">自動回転</button>
+      <button class="tbtn tbtn--primary" id="btnExport" type="button">STLを書き出す</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="panel">
+      <div class="maprow">
+        <div class="clickmap" id="clickmap"><svg id="mapSvg" viewBox="0 0 300 400"></svg></div>
+        <div class="maptools">
+          <span class="cnt" id="ptCount">波紋: 0 か所</span>
+          <button type="button" id="btnClearPts">クリア</button>
+        </div>
+        <p class="maphint">四角の中をタップして波紋の中心を置きます（最大8か所）。点をタップすると消えます。</p>
+      </div>
+
+      <fieldset>
+        <legend>波紋</legend>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="ringGap">リングの間隔</label>
+            <span class="numwrap"><input type="number" id="ringGapNum"><span class="unit">mm</span></span></div>
+          <input type="range" id="ringGap" min="4" max="30" step="0.5">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="ampH">高さ（振幅）</label>
+            <span class="numwrap"><input type="number" id="ampHNum"><span class="unit">mm</span></span></div>
+          <input type="range" id="ampH" min="0.5" max="8" step="0.1">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="decay">減衰</label>
+            <span class="numwrap"><input type="number" id="decayNum" step="0.01"></span></div>
+          <input type="range" id="decay" min="0" max="0.6" step="0.01">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>パネル</legend>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="panelW">幅</label>
+            <span class="numwrap"><input type="number" id="panelWNum"><span class="unit">mm</span></span></div>
+          <input type="range" id="panelW" min="80" max="260" step="2">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="panelH">高さ</label>
+            <span class="numwrap"><input type="number" id="panelHNum"><span class="unit">mm</span></span></div>
+          <input type="range" id="panelH" min="80" max="320" step="2">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="thickness">土台の厚み</label>
+            <span class="numwrap"><input type="number" id="thicknessNum"><span class="unit">mm</span></span></div>
+          <input type="range" id="thickness" min="3" max="14" step="0.5">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="resolution">解像度</label>
+            <span class="numwrap"><input type="number" id="resolutionNum"></span></div>
+          <input type="range" id="resolution" min="30" max="140" step="2">
+        </div>
+      </fieldset>
+
+      <div class="readouts">
+        <div><span class="k">外形寸法</span><span class="v" id="roSize">–</span></div>
+        <div><span class="k">最小厚み</span><span class="v" id="roMinT">–</span></div>
+      </div>
+
+      <p class="hint">形状は底面が平らな一体のソリッドです。通常のFDM/レジンプリンターでそのまま印刷できます（Vase Modeは不要）。壁掛け用のダボ穴や紐通しは印刷後に追加してください。</p>
+    </div>
+
+    <div class="stage-wrap">
+      <canvas id="stage"></canvas>
+      <div class="stage-hud" id="stageHud"></div>
+      <div class="stage-tip">ドラッグで回転・ホイールで拡大縮小</div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+  var el=function(s,r){return (r||document).querySelector(s);};
+  var reduceMotion=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var toastT;
+  function toast(msg){
+    var t=el("#toast");t.textContent=msg;t.classList.add("show");
+    clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove("show");},2200);
+  }
+
+  /* ---------------- params ---------------- */
+  var P={
+    points:[{x:0.28,y:0.72},{x:0.7,y:0.42},{x:0.22,y:0.22}],
+    ringGap:11, ampH:2.4, decay:0.12,
+    panelW:150, panelH:200, thickness:6, resolution:80
+  };
+
+  function updateMapAR(){ el("#clickmap").style.setProperty("--map-ar", (P.panelW/P.panelH)); }
+
+  /* ---------------- click map ---------------- */
+  var mapSvg=el("#mapSvg");
+  function renderMap(){
+    mapSvg.setAttribute("viewBox","0 0 300 "+Math.round(300*P.panelH/P.panelW));
+    var vbH=300*P.panelH/P.panelW;
+    var s="";
+    P.points.forEach(function(p,idx){
+      s+='<circle cx="'+(p.x*300).toFixed(1)+'" cy="'+(p.y*vbH).toFixed(1)+'" r="12" fill="var(--accent)" stroke="#fff" stroke-width="1.5" data-idx="'+idx+'"/>';
+      s+='<text x="'+(p.x*300).toFixed(1)+'" y="'+(p.y*vbH+3.5).toFixed(1)+'" font-size="9" text-anchor="middle" fill="#fff" font-family="monospace" style="pointer-events:none">'+(idx+1)+'</text>';
+    });
+    mapSvg.innerHTML=s;
+    el("#ptCount").textContent="波紋: "+P.points.length+" か所";
+  }
+  function mapToLocal(evt){
+    var rect=el("#clickmap").getBoundingClientRect();
+    var x=(evt.clientX-rect.left)/rect.width;
+    var y=(evt.clientY-rect.top)/rect.height;
+    return {x:Math.min(1,Math.max(0,x)), y:Math.min(1,Math.max(0,y))};
+  }
+  el("#clickmap").addEventListener("pointerdown",function(e){
+    var target=e.target.closest("circle");
+    if(target){
+      var idx=+target.getAttribute("data-idx");
+      P.points.splice(idx,1);
+    }else{
+      if(P.points.length>=8){ toast("波紋は最大8か所までです"); return; }
+      var pt=mapToLocal(e);
+      P.points.push(pt);
+    }
+    renderMap();
+    scheduleRebuild();
+  });
+  el("#btnClearPts").addEventListener("click",function(){
+    P.points=[]; renderMap(); scheduleRebuild(); toast("波紋を消しました");
+  });
+
+  /* ---------------- relief function ---------------- */
+  function reliefAt(x,y){
+    var h=0, freq=Math.PI*2/Math.max(0.5,P.ringGap);
+    for(var i=0;i<P.points.length;i++){
+      var px=P.points[i].x*P.panelW, py=P.points[i].y*P.panelH;
+      var dx=x-px, dy=y-py, d=Math.sqrt(dx*dx+dy*dy);
+      var decay=1/(1+d*P.decay);
+      h+=P.ampH*decay*Math.sin(d*freq);
+    }
+    return h;
+  }
+
+  /* ---------------- solid mesh builder ---------------- */
+  function buildMesh(){
+    var nx=Math.max(4,Math.round(P.resolution*P.panelW/Math.max(P.panelW,P.panelH)));
+    var ny=Math.max(4,Math.round(P.resolution*P.panelH/Math.max(P.panelW,P.panelH)));
+    var W=P.panelW, H=P.panelH, T=P.thickness;
+    var positions=[], grid=[];
+    var minZ=1e9, maxZ=-1e9;
+    for(var j=0;j<=ny;j++){
+      var y=(j/ny)*H, row=[];
+      for(var i=0;i<=nx;i++){
+        var x=(i/nx)*W;
+        var z=T+reliefAt(x,y);
+        if(z<minZ)minZ=z; if(z>maxZ)maxZ=z;
+        row.push(positions.length/3);
+        positions.push(x,y,z);
+      }
+      grid.push(row);
+    }
+    var indices=[];
+    for(var j=0;j<ny;j++){
+      for(var i=0;i<nx;i++){
+        var a=grid[j][i], b=grid[j][i+1], c=grid[j+1][i], d=grid[j+1][i+1];
+        indices.push(a,b,c, b,d,c);
+      }
+    }
+    // flat back face (z=0), facing -Z
+    var bl=positions.length/3; positions.push(0,0,0);
+    var br=positions.length/3; positions.push(W,0,0);
+    var tl=positions.length/3; positions.push(0,H,0);
+    var tr=positions.length/3; positions.push(W,H,0);
+    indices.push(bl,tl,br, tl,tr,br);
+
+    // side walls: follow the (bumpy) front boundary down to the flat back
+    function wall(i1,i2){
+      var p1x=positions[i1*3], p1y=positions[i1*3+1];
+      var p2x=positions[i2*3], p2y=positions[i2*3+1];
+      var b1=positions.length/3; positions.push(p1x,p1y,0);
+      var b2=positions.length/3; positions.push(p2x,p2y,0);
+      indices.push(i1,b1,i2, b1,b2,i2);
+    }
+    for(var i=0;i<nx;i++) wall(grid[0][i], grid[0][i+1]);        // front edge (y=0)
+    for(var j=0;j<ny;j++) wall(grid[j][nx], grid[j+1][nx]);      // right edge (x=W)
+    for(var i=nx;i>0;i--) wall(grid[ny][i], grid[ny][i-1]);      // back edge (y=H)
+    for(var j=ny;j>0;j--) wall(grid[j][0], grid[j-1][0]);        // left edge (x=0)
+
+    return {positions:positions, indices:indices, minZ:minZ, maxZ:maxZ, nx:nx, ny:ny};
+  }
+
+  /* ---------------- three.js scene ---------------- */
+  var stageEl=el("#stage");
+  var renderer=new THREE.WebGLRenderer({canvas:stageEl, antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  var scene=new THREE.Scene();
+  var camera=new THREE.PerspectiveCamera(36,1,1,5000);
+
+  var ambient=new THREE.AmbientLight(0xffffff,0.22);
+  scene.add(ambient);
+  var hemi=new THREE.HemisphereLight(0xffffff,0x2a241c,0.22);
+  scene.add(hemi);
+  var key=new THREE.DirectionalLight(0xffffff,1.5);
+  key.position.set(320,160,90);
+  scene.add(key);
+  var fill=new THREE.DirectionalLight(0xffffff,0.3);
+  fill.position.set(-160,-60,200);
+  scene.add(fill);
+  var rim=new THREE.DirectionalLight(0xffffff,0.3);
+  rim.position.set(-80,120,-260);
+  scene.add(rim);
+
+  var geometry=new THREE.BufferGeometry();
+  var material=new THREE.MeshStandardMaterial({color:0xe9e2d0, roughness:0.85, metalness:0.03, side:THREE.DoubleSide});
+  var mesh=new THREE.Mesh(geometry,material);
+  scene.add(mesh);
+  var wireMesh=new THREE.LineSegments(
+    new THREE.BufferGeometry(),
+    new THREE.LineBasicMaterial({color:0xffffff, transparent:true, opacity:0.22})
+  );
+  wireMesh.visible=false;
+  scene.add(wireMesh);
+
+  var currentGeom=null, meshCenter=new THREE.Vector3();
+  function refreshGeometry(){
+    currentGeom=buildMesh();
+    geometry.setIndex(currentGeom.indices);
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(currentGeom.positions,3));
+    if(geometry.attributes.normal) geometry.deleteAttribute("normal");
+    geometry.computeVertexNormals();
+    geometry.computeBoundingBox();
+
+    wireMesh.geometry.dispose();
+    wireMesh.geometry=new THREE.WireframeGeometry(geometry);
+
+    var bb=geometry.boundingBox;
+    meshCenter.set((bb.min.x+bb.max.x)/2, (bb.min.y+bb.max.y)/2, (bb.min.z+bb.max.z)/2);
+    target.copy(meshCenter);
+
+    updateReadouts();
+    updateHud();
+  }
+
+  /* ---------------- orbit camera ---------------- */
+  var orbit={theta:0.35, phi:1.2, radius:340};
+  var target=new THREE.Vector3(P.panelW/2,P.panelH/2,0);
+  var dragging=false, lastX=0, lastY=0;
+  function applyCamera(){
+    var x=target.x+orbit.radius*Math.sin(orbit.phi)*Math.sin(orbit.theta);
+    var y=target.y+orbit.radius*Math.cos(orbit.phi);
+    var z=target.z+orbit.radius*Math.sin(orbit.phi)*Math.cos(orbit.theta);
+    camera.position.set(x,y,z);
+    camera.lookAt(target);
+  }
+  stageEl.addEventListener("pointerdown",function(e){
+    dragging=true;lastX=e.clientX;lastY=e.clientY;
+    try{stageEl.setPointerCapture(e.pointerId);}catch(_){}
+  });
+  stageEl.addEventListener("pointermove",function(e){
+    if(!dragging)return;
+    var dx=e.clientX-lastX, dy=e.clientY-lastY;
+    lastX=e.clientX;lastY=e.clientY;
+    orbit.theta-=dx*0.008;
+    orbit.phi=Math.min(Math.PI-0.08, Math.max(0.08, orbit.phi-dy*0.008));
+  });
+  function endDrag(){dragging=false;}
+  stageEl.addEventListener("pointerup",endDrag);
+  stageEl.addEventListener("pointercancel",endDrag);
+  stageEl.addEventListener("wheel",function(e){
+    e.preventDefault();
+    orbit.radius=Math.min(1200, Math.max(60, orbit.radius+e.deltaY*0.4));
+  },{passive:false});
+
+  var autoSpin=!reduceMotion;
+  function tick(){
+    if(autoSpin && !dragging) orbit.theta+=0.0022;
+    applyCamera();
+    renderer.render(scene,camera);
+    requestAnimationFrame(tick);
+  }
+
+  function resize(){
+    var w=stageEl.clientWidth||1, h=stageEl.clientHeight||1;
+    renderer.setSize(w,h,false);
+    camera.aspect=w/h;
+    camera.updateProjectionMatrix();
+  }
+  if(window.ResizeObserver){
+    new ResizeObserver(resize).observe(stageEl.parentElement);
+  }else{
+    window.addEventListener("resize",resize);
+  }
+
+  /* ---------------- readouts / hud ---------------- */
+  function updateReadouts(){
+    el("#roSize").textContent=P.panelW.toFixed(0)+" × "+P.panelH.toFixed(0)+" mm";
+    el("#roMinT").textContent=(currentGeom?currentGeom.minZ.toFixed(1):"–")+" mm";
+  }
+  function updateHud(){
+    var tri=currentGeom?Math.round(currentGeom.indices.length/3):0;
+    el("#stageHud").textContent="頂点 "+(currentGeom?Math.round(currentGeom.positions.length/3):0)+" ・ 三角形 "+tri;
+  }
+
+  function scheduleRebuild(){ refreshGeometry(); }
+
+  /* ---------------- controls ---------------- */
+  function bindParam(key,sliderId,numId,opts,after){
+    var r=el("#"+sliderId), n=el("#"+numId);
+    var dec=opts&&opts.decimals!=null?opts.decimals:0;
+    r.min=opts.min; r.max=opts.max; if(opts.step!=null){r.step=opts.step; n.step=opts.step;}
+    function set(v){
+      if(opts.min!=null) v=Math.max(opts.min,v);
+      if(opts.max!=null) v=Math.min(opts.max,v);
+      P[key]=v; r.value=v; n.value=dec?v.toFixed(dec):v;
+      if(after) after();
+      scheduleRebuild();
+    }
+    r.addEventListener("input",function(){set(+r.value);});
+    n.addEventListener("change",function(){set(+n.value||0);});
+    set(P[key]);
+  }
+  bindParam("ringGap","ringGap","ringGapNum",{min:4,max:30,step:0.5,decimals:1});
+  bindParam("ampH","ampH","ampHNum",{min:0.5,max:8,step:0.1,decimals:1});
+  bindParam("decay","decay","decayNum",{min:0,max:0.6,step:0.01,decimals:2});
+  bindParam("panelW","panelW","panelWNum",{min:80,max:260,step:2}, function(){updateMapAR();renderMap();});
+  bindParam("panelH","panelH","panelHNum",{min:80,max:320,step:2}, function(){updateMapAR();renderMap();});
+  bindParam("thickness","thickness","thicknessNum",{min:3,max:14,step:0.5,decimals:1});
+  bindParam("resolution","resolution","resolutionNum",{min:30,max:140,step:2});
+
+  el("#btnWire").addEventListener("click",function(){
+    var on=this.getAttribute("aria-pressed")!=="true";
+    this.setAttribute("aria-pressed",on?"true":"false");
+    mesh.visible=!on; wireMesh.visible=on;
+  });
+  el("#btnSpin").addEventListener("click",function(){
+    autoSpin=!autoSpin;
+    this.setAttribute("aria-pressed",autoSpin?"true":"false");
+  });
+  el("#reliefColor").addEventListener("input",function(e){ material.color.set(e.target.value); });
+
+  /* ---------------- STL export ---------------- */
+  function buildSTLBlob(positions,indices){
+    var triCount=indices.length/3;
+    var buffer=new ArrayBuffer(84+50*triCount);
+    var dv=new DataView(buffer);
+    var header="Suimon export "+new Date().toISOString();
+    for(var h=0;h<Math.min(header.length,80);h++) dv.setUint8(h,header.charCodeAt(h));
+    dv.setUint32(80,triCount,true);
+    var off=84;
+    function vx(i){return [positions[i*3],positions[i*3+1],positions[i*3+2]];}
+    for(var t=0;t<triCount;t++){
+      var a=vx(indices[t*3]), b=vx(indices[t*3+1]), c=vx(indices[t*3+2]);
+      var ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2];
+      var vx2=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2];
+      var nx=uy*vz-uz*vy, ny=uz*vx2-ux*vz, nz=ux*vy-uy*vx2;
+      var len=Math.sqrt(nx*nx+ny*ny+nz*nz)||1;
+      nx/=len;ny/=len;nz/=len;
+      dv.setFloat32(off,nx,true);off+=4;dv.setFloat32(off,ny,true);off+=4;dv.setFloat32(off,nz,true);off+=4;
+      [a,b,c].forEach(function(p){
+        dv.setFloat32(off,p[0],true);off+=4;
+        dv.setFloat32(off,p[1],true);off+=4;
+        dv.setFloat32(off,p[2],true);off+=4;
+      });
+      dv.setUint16(off,0,true);off+=2;
+    }
+    return new Blob([buffer],{type:"model/stl"});
+  }
+  function pad(n){return String(n).padStart(2,"0");}
+  el("#btnExport").addEventListener("click",function(){
+    if(!currentGeom || !P.points.length){ toast("波紋を1つ以上置いてください"); return; }
+    var blob=buildSTLBlob(currentGeom.positions,currentGeom.indices);
+    var d=new Date();
+    var name="suimon-"+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+"-"+pad(d.getHours())+pad(d.getMinutes())+".stl";
+    var a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);a.download=name;
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(a.href);},5000);
+    toast("STLを書き出しました（"+(blob.size/1024).toFixed(0)+" KB）");
+  });
+
+  /* ---------------- init ---------------- */
+  updateMapAR();
+  renderMap();
+  resize();
+  refreshGeometry();
+  applyCamera();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

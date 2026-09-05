@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>稜杢 Ryomoku</title>
+<meta name="theme-color" content="#e9e4da">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=M+PLUS+1:wght@400;500;700;800&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.138.3/three.min.js"></script>
+<style>
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  img{max-width:100%}
+  html{-webkit-text-size-adjust:100%}
+
+  :root{
+    --ground:#e9e4da;
+    --panel:#f4f1ea;
+    --panel-2:#e6e0d2;
+    --field:#fcfbf7;
+    --ink:#2a231a;
+    --muted:#6c6151;
+    --line:#d2c9b6;
+    --accent:#b0522a;
+    --accent-ink:#fff6f0;
+    --wave:#3c6e63;
+    --warn:#a8641c;
+    --stage:#161310;
+    --shadow:0 1px 0 rgba(42,35,26,.06), 0 14px 30px -18px rgba(42,35,26,.45);
+    --f-body:"M PLUS 1","Hiragino Kaku Gothic ProN",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+    color-scheme:light dark;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#181513;
+      --panel:#211c18;
+      --panel-2:#292219;
+      --field:#1c1815;
+      --ink:#efe7da;
+      --muted:#a3947e;
+      --line:#3c332a;
+      --accent:#e07a4c;
+      --accent-ink:#1a0d07;
+      --wave:#6cb3a3;
+      --warn:#e0b23c;
+      --shadow:0 1px 0 rgba(0,0,0,.3), 0 18px 38px -20px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#181513;
+    --panel:#211c18;
+    --panel-2:#292219;
+    --field:#1c1815;
+    --ink:#efe7da;
+    --muted:#a3947e;
+    --line:#3c332a;
+    --accent:#e07a4c;
+    --accent-ink:#1a0d07;
+    --wave:#6cb3a3;
+    --warn:#e0b23c;
+    --shadow:0 1px 0 rgba(0,0,0,.3), 0 18px 38px -20px rgba(0,0,0,.8);
+  }
+
+  html,body{height:100%}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--f-body);font-size:14.5px;line-height:1.6}
+  ::selection{background:var(--accent);color:var(--accent-ink)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  .app{height:100dvh;display:flex;flex-direction:column}
+
+  header{
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:12px 18px;border-bottom:1px solid var(--line);background:var(--panel);
+  }
+  .brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .brand h1{font-family:var(--f-body);font-weight:800;font-size:19px;margin:0;letter-spacing:.01em}
+  .brand h1 small{font-weight:500;font-size:12px;color:var(--muted);margin-left:2px}
+  .brand p{margin:0;font-size:12px;color:var(--muted)}
+  header .spacer{flex:1}
+  .toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tbtn{
+    appearance:none;cursor:pointer;font-family:var(--f-body);font-weight:700;font-size:12.5px;
+    padding:9px 13px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel-2);color:var(--ink);
+  }
+  .tbtn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .tbtn--primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .tbtn:active{transform:translateY(1px)}
+  input[type="color"]{width:34px;height:34px;padding:0;border-radius:9px;border:1.5px solid var(--line);background:none;cursor:pointer}
+
+  main{flex:1;display:grid;grid-template-columns:320px 1fr;min-height:0}
+  @media (max-width:860px){
+    main{display:flex;flex-direction:column;min-height:0}
+    .stage-wrap{flex:1 1 auto;order:-1;min-height:42vh}
+    .panel{flex:0 0 auto;max-height:58dvh}
+  }
+
+  .panel{overflow-y:auto;min-height:0;padding:16px 16px 40px;border-right:1px solid var(--line)}
+  @media (max-width:860px){.panel{border-right:0;border-top:1px solid var(--line)}}
+
+  .seedrow{display:flex;gap:8px;align-items:center;margin-bottom:16px}
+  .seedrow input[type="number"]{
+    flex:1;font-family:var(--f-mono);font-size:16px;font-weight:600;text-align:center;
+    padding:9px 8px;border-radius:10px;border:1.5px solid var(--line);background:var(--field);color:var(--ink);
+  }
+  .dice{
+    flex:0 0 auto;width:42px;height:42px;border-radius:10px;font-size:18px;
+    border:1.5px solid var(--line);background:var(--panel-2);cursor:pointer;
+  }
+  .dice:active{transform:translateY(1px)}
+
+  fieldset{border:0;margin:0 0 20px;padding:0}
+  legend{font-family:var(--f-body);font-weight:800;font-size:13px;margin:0 0 10px;padding:0}
+
+  .ctrl{margin-bottom:12px}
+  .ctrl-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:5px}
+  .ctrl-head label{font-size:12.5px;font-weight:700}
+  .numwrap{display:flex;align-items:baseline;gap:4px;font-family:var(--f-mono)}
+  .numwrap input[type="number"]{
+    width:62px;font-family:var(--f-mono);font-size:12.5px;text-align:right;
+    padding:3px 6px;border-radius:6px;border:1.5px solid var(--line);background:var(--field);color:var(--ink);
+  }
+  .numwrap .unit{font-size:10.5px;color:var(--muted)}
+  input[type="range"]{width:100%;accent-color:var(--accent);height:20px}
+
+  .readouts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 18px}
+  .readouts div{background:var(--field);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+  .readouts .k{display:block;font-size:10px;color:var(--muted)}
+  .readouts .v{display:block;font-family:var(--f-mono);font-weight:600;font-size:14px;margin-top:2px}
+
+  .hint{font-size:11.5px;color:var(--muted);line-height:1.7;border-left:3px solid var(--wave);padding-left:10px;margin:4px 0 0}
+
+  .stage-wrap{position:relative;background:var(--stage);overflow:hidden}
+  #stage{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+  #stage:active{cursor:grabbing}
+  .stage-hud{
+    position:absolute;left:12px;bottom:12px;font-family:var(--f-mono);font-size:11px;color:#e7ddca;opacity:.85;pointer-events:none;
+  }
+  .stage-tip{
+    position:absolute;right:12px;bottom:12px;max-width:220px;text-align:right;
+    font-size:11px;color:#cabfa8;opacity:.8;pointer-events:none;line-height:1.6;
+  }
+
+  .toast{
+    position:fixed;left:50%;bottom:22px;z-index:60;transform:translateX(-50%) translateY(8px);
+    background:var(--ink);color:var(--ground);padding:9px 18px;border-radius:999px;
+    font-size:12.5px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <div class="brand">
+      <h1>稜杢<small>Ryomoku</small></h1>
+      <p>綾杢の矢羽根模様を、盛り上がったレリーフとして3Dプリントできるパネルに</p>
+    </div>
+    <div class="spacer"></div>
+    <div class="toolbar">
+      <input type="color" id="reliefColor" value="#c9baa0" aria-label="プレビューの色">
+      <button class="tbtn" id="btnWire" type="button" aria-pressed="false">ワイヤーフレーム</button>
+      <button class="tbtn" id="btnSpin" type="button" aria-pressed="true">自動回転</button>
+      <button class="tbtn tbtn--primary" id="btnExport" type="button">STLを書き出す</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="panel">
+      <div class="seedrow">
+        <input type="number" id="seed" value="1234" aria-label="シード番号">
+        <button class="dice" id="btnDice" type="button" title="シードをシャッフル" aria-label="シードをシャッフル">🎲</button>
+      </div>
+
+      <fieldset>
+        <legend>模様</legend>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="pathCount">折れ線の数</label>
+            <span class="numwrap"><input type="number" id="pathCountNum"></span></div>
+          <input type="range" id="pathCount" min="1" max="6" step="1">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="angle">角度</label>
+            <span class="numwrap"><input type="number" id="angleNum"><span class="unit">°</span></span></div>
+          <input type="range" id="angle" min="10" max="80" step="1">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="spacing">帯の間隔</label>
+            <span class="numwrap"><input type="number" id="spacingNum"><span class="unit">mm</span></span></div>
+          <input type="range" id="spacing" min="6" max="30" step="0.5">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="jitter">折れの乱れ</label>
+            <span class="numwrap"><input type="number" id="jitterNum" step="0.05"></span></div>
+          <input type="range" id="jitter" min="0" max="1" step="0.05">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>盛り上がり</legend>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="reliefAmp">高さ</label>
+            <span class="numwrap"><input type="number" id="reliefAmpNum"><span class="unit">mm</span></span></div>
+          <input type="range" id="reliefAmp" min="0.5" max="6" step="0.1">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="sharpness">角のシャープさ</label>
+            <span class="numwrap"><input type="number" id="sharpnessNum"></span></div>
+          <input type="range" id="sharpness" min="1" max="30" step="1">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>パネル</legend>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="panelW">幅</label>
+            <span class="numwrap"><input type="number" id="panelWNum"><span class="unit">mm</span></span></div>
+          <input type="range" id="panelW" min="80" max="260" step="2">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="panelH">高さ</label>
+            <span class="numwrap"><input type="number" id="panelHNum"><span class="unit">mm</span></span></div>
+          <input type="range" id="panelH" min="80" max="320" step="2">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="thickness">土台の厚み</label>
+            <span class="numwrap"><input type="number" id="thicknessNum"><span class="unit">mm</span></span></div>
+          <input type="range" id="thickness" min="2" max="10" step="0.5">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><label for="resolution">解像度</label>
+            <span class="numwrap"><input type="number" id="resolutionNum"></span></div>
+          <input type="range" id="resolution" min="30" max="110" step="2">
+        </div>
+      </fieldset>
+
+      <div class="readouts">
+        <div><span class="k">外形寸法</span><span class="v" id="roSize">–</span></div>
+        <div><span class="k">全体の厚み</span><span class="v" id="roTotalT">–</span></div>
+      </div>
+
+      <p class="hint">同じ数字なら常に同じ模様になります。背景は土台の厚みのまま平らで、帯の部分だけ盛り上がる一体のソリッドです。通常のFDM/レジンプリンターでそのまま印刷できます（Vase Mode不要）。</p>
+    </div>
+
+    <div class="stage-wrap">
+      <canvas id="stage"></canvas>
+      <div class="stage-hud" id="stageHud"></div>
+      <div class="stage-tip">ドラッグで回転・ホイールで拡大縮小</div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+  var el=function(s,r){return (r||document).querySelector(s);};
+  var reduceMotion=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var toastT;
+  function toast(msg){
+    var t=el("#toast");t.textContent=msg;t.classList.add("show");
+    clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove("show");},2200);
+  }
+
+  /* ---------------- seeded RNG ---------------- */
+  function mulberry32(seed){
+    var s=seed>>>0;
+    return function(){
+      s=(s+0x6D2B79F5)|0;
+      var t=Math.imul(s^(s>>>15), 1|s);
+      t=(t+Math.imul(t^(t>>>7), 61|t))^t;
+      return ((t^(t>>>14))>>>0)/4294967296;
+    };
+  }
+
+  /* ---------------- params ---------------- */
+  var P={
+    seed:1234, pathCount:3, angle:45, spacing:16, jitter:0.15,
+    reliefAmp:2.5, sharpness:14,
+    panelW:150, panelH:200, thickness:4, resolution:90
+  };
+
+  /* ---------------- chevron skeleton (same idea as Ayamoku) ---------------- */
+  function makeSkeleton(rng, angleDeg, jitter, W, H){
+    var angle=angleDeg*Math.PI/180;
+    var baseDir=rng()*Math.PI*2;
+    var cx=rng()*W, cy=rng()*H;
+    var backLen=Math.hypot(W,H)*0.9;
+    var diag=Math.hypot(W,H);
+    var segMin=diag*(0.05+jitter*0.02);
+    var segMax=diag*(0.16+jitter*0.22);
+    function walk(sign){
+      var pts=[[cx,cy]], cur=[cx,cy], useA=rng()<0.5, travelled=0;
+      while(travelled<backLen && pts.length<40){
+        var d=baseDir + sign*(useA?angle:-angle);
+        var segLen=segMin+rng()*(segMax-segMin);
+        var nxt=[cur[0]+Math.cos(d)*segLen*sign, cur[1]+Math.sin(d)*segLen*sign];
+        pts.push(nxt); cur=nxt; travelled+=segLen; useA=!useA;
+      }
+      return pts;
+    }
+    var fwd=walk(1), back=walk(-1);
+    back.reverse();
+    return back.concat(fwd.slice(1));
+  }
+
+  // signed distance from a point to a polyline (nearest segment; sign from
+  // which side of that segment's direction the point falls on)
+  function signedDistToPolyline(px,py,pts){
+    var best=1e18, bestSign=1;
+    for(var i=0;i<pts.length-1;i++){
+      var ax=pts[i][0],ay=pts[i][1], bx=pts[i+1][0],by=pts[i+1][1];
+      var dx=bx-ax, dy=by-ay, len2=dx*dx+dy*dy||1e-9;
+      var t=((px-ax)*dx+(py-ay)*dy)/len2;
+      t=t<0?0:(t>1?1:t);
+      var cx=ax+t*dx, cy=ay+t*dy;
+      var ddx=px-cx, ddy=py-cy;
+      var dist=ddx*ddx+ddy*ddy;
+      if(dist<best){
+        best=dist;
+        var cross=dx*ddy-dy*ddx;
+        bestSign=cross>=0?1:-1;
+      }
+    }
+    return Math.sqrt(best)*bestSign;
+  }
+
+  var skeletons=[];
+  function rebuildSkeletons(){
+    var rng=mulberry32(P.seed>>>0);
+    skeletons=[];
+    for(var i=0;i<P.pathCount;i++) skeletons.push(makeSkeleton(rng,P.angle,P.jitter,P.panelW,P.panelH));
+  }
+
+  // 0..1 "how raised" this point is, unioned (max) across every chevron path;
+  // tanh(sharpness*sin(...)) turns the alternating bands into a smooth
+  // (rather than knife-edged) square wave — friendlier to print.
+  function raiseAt(x,y){
+    var raise=0, k=P.sharpness;
+    for(var i=0;i<skeletons.length;i++){
+      var d=signedDistToPolyline(x,y,skeletons[i]);
+      var s=Math.sin((d/P.spacing)*Math.PI);
+      var edge=Math.tanh(k*s)/Math.tanh(k);
+      var v=0.5+0.5*edge;
+      if(v>raise) raise=v;
+    }
+    return raise;
+  }
+
+  /* ---------------- solid mesh builder (heightfield + flat back + walls) ---------------- */
+  function buildMesh(){
+    var longer=Math.max(P.panelW,P.panelH);
+    var nx=Math.max(4,Math.round(P.resolution*P.panelW/longer));
+    var ny=Math.max(4,Math.round(P.resolution*P.panelH/longer));
+    var W=P.panelW, H=P.panelH, T=P.thickness, AMP=P.reliefAmp;
+    var positions=[], grid=[];
+    var maxZ=-1e9;
+    for(var j=0;j<=ny;j++){
+      var y=(j/ny)*H, row=[];
+      for(var i=0;i<=nx;i++){
+        var x=(i/nx)*W;
+        var z=T+raiseAt(x,y)*AMP;
+        if(z>maxZ)maxZ=z;
+        row.push(positions.length/3);
+        positions.push(x,y,z);
+      }
+      grid.push(row);
+    }
+    var indices=[];
+    for(var j=0;j<ny;j++){
+      for(var i=0;i<nx;i++){
+        var a=grid[j][i], b=grid[j][i+1], c=grid[j+1][i], d=grid[j+1][i+1];
+        indices.push(a,b,c, b,d,c);
+      }
+    }
+    var bl=positions.length/3; positions.push(0,0,0);
+    var br=positions.length/3; positions.push(W,0,0);
+    var tl=positions.length/3; positions.push(0,H,0);
+    var tr=positions.length/3; positions.push(W,H,0);
+    indices.push(bl,tl,br, tl,tr,br);
+
+    function wall(i1,i2){
+      var p1x=positions[i1*3], p1y=positions[i1*3+1];
+      var p2x=positions[i2*3], p2y=positions[i2*3+1];
+      var b1=positions.length/3; positions.push(p1x,p1y,0);
+      var b2=positions.length/3; positions.push(p2x,p2y,0);
+      indices.push(i1,b1,i2, b1,b2,i2);
+    }
+    for(var i=0;i<nx;i++) wall(grid[0][i], grid[0][i+1]);
+    for(var j=0;j<ny;j++) wall(grid[j][nx], grid[j+1][nx]);
+    for(var i=nx;i>0;i--) wall(grid[ny][i], grid[ny][i-1]);
+    for(var j=ny;j>0;j--) wall(grid[j][0], grid[j-1][0]);
+
+    return {positions:positions, indices:indices, maxZ:maxZ};
+  }
+
+  /* ---------------- three.js scene ---------------- */
+  var stageEl=el("#stage");
+  var renderer=new THREE.WebGLRenderer({canvas:stageEl, antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  var scene=new THREE.Scene();
+  var camera=new THREE.PerspectiveCamera(36,1,1,5000);
+
+  var ambient=new THREE.AmbientLight(0xffffff,0.22);
+  scene.add(ambient);
+  var hemi=new THREE.HemisphereLight(0xffffff,0x2a241c,0.22);
+  scene.add(hemi);
+  var key=new THREE.DirectionalLight(0xffffff,1.4);
+  key.position.set(320,160,90);
+  scene.add(key);
+  var fillL=new THREE.DirectionalLight(0xffffff,0.3);
+  fillL.position.set(-160,-60,200);
+  scene.add(fillL);
+  var rim=new THREE.DirectionalLight(0xffffff,0.3);
+  rim.position.set(-80,120,-260);
+  scene.add(rim);
+
+  var geometry=new THREE.BufferGeometry();
+  var material=new THREE.MeshStandardMaterial({color:0xc9baa0, roughness:0.82, metalness:0.03, side:THREE.DoubleSide});
+  var mesh=new THREE.Mesh(geometry,material);
+  scene.add(mesh);
+  var wireMesh=new THREE.LineSegments(
+    new THREE.BufferGeometry(),
+    new THREE.LineBasicMaterial({color:0xffffff, transparent:true, opacity:0.22})
+  );
+  wireMesh.visible=false;
+  scene.add(wireMesh);
+
+  var currentGeom=null, target=new THREE.Vector3(P.panelW/2,P.panelH/2,0);
+  function refreshGeometry(){
+    rebuildSkeletons();
+    currentGeom=buildMesh();
+    geometry.setIndex(currentGeom.indices);
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(currentGeom.positions,3));
+    if(geometry.attributes.normal) geometry.deleteAttribute("normal");
+    geometry.computeVertexNormals();
+    geometry.computeBoundingBox();
+
+    wireMesh.geometry.dispose();
+    wireMesh.geometry=new THREE.WireframeGeometry(geometry);
+
+    target.set(P.panelW/2,P.panelH/2,0);
+    updateReadouts();
+    updateHud();
+  }
+
+  /* ---------------- orbit camera ---------------- */
+  var orbit={theta:0.35, phi:1.2, radius:340};
+  var dragging=false, lastX=0, lastY=0;
+  function applyCamera(){
+    var x=target.x+orbit.radius*Math.sin(orbit.phi)*Math.sin(orbit.theta);
+    var y=target.y+orbit.radius*Math.cos(orbit.phi);
+    var z=target.z+orbit.radius*Math.sin(orbit.phi)*Math.cos(orbit.theta);
+    camera.position.set(x,y,z);
+    camera.lookAt(target);
+  }
+  stageEl.addEventListener("pointerdown",function(e){
+    dragging=true;lastX=e.clientX;lastY=e.clientY;
+    try{stageEl.setPointerCapture(e.pointerId);}catch(_){}
+  });
+  stageEl.addEventListener("pointermove",function(e){
+    if(!dragging)return;
+    var dx=e.clientX-lastX, dy=e.clientY-lastY;
+    lastX=e.clientX;lastY=e.clientY;
+    orbit.theta-=dx*0.008;
+    orbit.phi=Math.min(Math.PI-0.08, Math.max(0.08, orbit.phi-dy*0.008));
+  });
+  function endDrag(){dragging=false;}
+  stageEl.addEventListener("pointerup",endDrag);
+  stageEl.addEventListener("pointercancel",endDrag);
+  stageEl.addEventListener("wheel",function(e){
+    e.preventDefault();
+    orbit.radius=Math.min(1200, Math.max(60, orbit.radius+e.deltaY*0.4));
+  },{passive:false});
+
+  var autoSpin=!reduceMotion;
+  function tick(){
+    if(autoSpin && !dragging) orbit.theta+=0.0022;
+    applyCamera();
+    renderer.render(scene,camera);
+    requestAnimationFrame(tick);
+  }
+
+  function resize(){
+    var w=stageEl.clientWidth||1, h=stageEl.clientHeight||1;
+    renderer.setSize(w,h,false);
+    camera.aspect=w/h;
+    camera.updateProjectionMatrix();
+  }
+  if(window.ResizeObserver){
+    new ResizeObserver(resize).observe(stageEl.parentElement);
+  }else{
+    window.addEventListener("resize",resize);
+  }
+
+  /* ---------------- readouts / hud ---------------- */
+  function updateReadouts(){
+    el("#roSize").textContent=P.panelW.toFixed(0)+" × "+P.panelH.toFixed(0)+" mm";
+    el("#roTotalT").textContent=(currentGeom?currentGeom.maxZ.toFixed(1):"–")+" mm";
+  }
+  function updateHud(){
+    var tri=currentGeom?Math.round(currentGeom.indices.length/3):0;
+    el("#stageHud").textContent="頂点 "+(currentGeom?Math.round(currentGeom.positions.length/3):0)+" ・ 三角形 "+tri;
+  }
+  function scheduleRebuild(){ refreshGeometry(); }
+
+  /* ---------------- controls ---------------- */
+  function bindParam(key,sliderId,numId,opts){
+    var r=el("#"+sliderId), n=el("#"+numId);
+    var dec=opts&&opts.decimals!=null?opts.decimals:0;
+    r.min=opts.min; r.max=opts.max; if(opts.step!=null){r.step=opts.step; n.step=opts.step;}
+    function set(v){
+      if(opts.min!=null) v=Math.max(opts.min,v);
+      if(opts.max!=null) v=Math.min(opts.max,v);
+      P[key]=v; r.value=v; n.value=dec?v.toFixed(dec):v;
+      scheduleRebuild();
+    }
+    r.addEventListener("input",function(){set(+r.value);});
+    n.addEventListener("change",function(){set(+n.value||0);});
+    set(P[key]);
+  }
+  bindParam("pathCount","pathCount","pathCountNum",{min:1,max:6,step:1});
+  bindParam("angle","angle","angleNum",{min:10,max:80,step:1});
+  bindParam("spacing","spacing","spacingNum",{min:6,max:30,step:0.5,decimals:1});
+  bindParam("jitter","jitter","jitterNum",{min:0,max:1,step:0.05,decimals:2});
+  bindParam("reliefAmp","reliefAmp","reliefAmpNum",{min:0.5,max:6,step:0.1,decimals:1});
+  bindParam("sharpness","sharpness","sharpnessNum",{min:1,max:30,step:1});
+  bindParam("panelW","panelW","panelWNum",{min:80,max:260,step:2});
+  bindParam("panelH","panelH","panelHNum",{min:80,max:320,step:2});
+  bindParam("thickness","thickness","thicknessNum",{min:2,max:10,step:0.5,decimals:1});
+  bindParam("resolution","resolution","resolutionNum",{min:30,max:110,step:2});
+
+  var seedInput=el("#seed");
+  seedInput.value=P.seed;
+  function setSeed(v){ P.seed=Math.round(v)||0; seedInput.value=P.seed; scheduleRebuild(); }
+  seedInput.addEventListener("change",function(){setSeed(+seedInput.value);});
+  el("#btnDice").addEventListener("click",function(){
+    setSeed(Math.floor(Math.random()*1000000));
+    toast("シード "+P.seed+" に変更しました");
+  });
+
+  el("#btnWire").addEventListener("click",function(){
+    var on=this.getAttribute("aria-pressed")!=="true";
+    this.setAttribute("aria-pressed",on?"true":"false");
+    mesh.visible=!on; wireMesh.visible=on;
+  });
+  el("#btnSpin").addEventListener("click",function(){
+    autoSpin=!autoSpin;
+    this.setAttribute("aria-pressed",autoSpin?"true":"false");
+  });
+  el("#reliefColor").addEventListener("input",function(e){ material.color.set(e.target.value); });
+
+  /* ---------------- STL export ---------------- */
+  function buildSTLBlob(positions,indices){
+    var triCount=indices.length/3;
+    var buffer=new ArrayBuffer(84+50*triCount);
+    var dv=new DataView(buffer);
+    var header="Ryomoku export "+new Date().toISOString();
+    for(var h=0;h<Math.min(header.length,80);h++) dv.setUint8(h,header.charCodeAt(h));
+    dv.setUint32(80,triCount,true);
+    var off=84;
+    function vx(i){return [positions[i*3],positions[i*3+1],positions[i*3+2]];}
+    for(var t=0;t<triCount;t++){
+      var a=vx(indices[t*3]), b=vx(indices[t*3+1]), c=vx(indices[t*3+2]);
+      var ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2];
+      var vx2=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2];
+      var nx=uy*vz-uz*vy, ny=uz*vx2-ux*vz, nz=ux*vy-uy*vx2;
+      var len=Math.sqrt(nx*nx+ny*ny+nz*nz)||1;
+      nx/=len;ny/=len;nz/=len;
+      dv.setFloat32(off,nx,true);off+=4;dv.setFloat32(off,ny,true);off+=4;dv.setFloat32(off,nz,true);off+=4;
+      [a,b,c].forEach(function(p){
+        dv.setFloat32(off,p[0],true);off+=4;
+        dv.setFloat32(off,p[1],true);off+=4;
+        dv.setFloat32(off,p[2],true);off+=4;
+      });
+      dv.setUint16(off,0,true);off+=2;
+    }
+    return new Blob([buffer],{type:"model/stl"});
+  }
+  function pad(n){return String(n).padStart(2,"0");}
+  el("#btnExport").addEventListener("click",function(){
+    if(!currentGeom){toast("生成中です");return;}
+    var blob=buildSTLBlob(currentGeom.positions,currentGeom.indices);
+    var d=new Date();
+    var name="ryomoku-"+P.seed+"-"+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+"-"+pad(d.getHours())+pad(d.getMinutes())+".stl";
+    var a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);a.download=name;
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(a.href);},5000);
+    toast("STLを書き出しました（"+(blob.size/1024).toFixed(0)+" KB）");
+  });
+
+  /* ---------------- init ---------------- */
+  resize();
+  refreshGeometry();
+  applyCamera();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

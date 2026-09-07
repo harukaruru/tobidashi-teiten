@@ -207,6 +207,18 @@
   .ghost.on{opacity:.42}
   @media (prefers-reduced-motion:reduce){.ghost{transition:none}}
 
+  .ghost-bar{
+    position:absolute;left:10px;right:10px;top:52px;z-index:4;
+    display:flex;align-items:center;gap:10px;
+    padding:8px 12px;border-radius:12px;
+    background:rgba(18,16,14,.6);border:1.5px solid rgba(255,255,255,.4);
+    -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  }
+  .ghost-bar span{
+    font-family:var(--f-body);font-size:11px;font-weight:700;color:#fff;white-space:nowrap;
+  }
+  .ghost-bar input[type="range"]{flex:1;min-width:0;accent-color:var(--accent);height:20px}
+
   .cam-msg{
     position:absolute;inset:0;z-index:5;
     display:flex;flex-direction:column;gap:12px;
@@ -471,6 +483,11 @@
         </div>
         <div class="tilt-hint" id="tiltHint" hidden></div>
 
+        <div class="ghost-bar" id="ghostBar" hidden>
+          <span>ゴーストの濃さ</span>
+          <input type="range" id="ghostOpacityRange" min="8" max="80" step="2" value="42" aria-label="ゴーストの濃さ">
+        </div>
+
         <div class="vf-top">
           <button class="chip" id="chipDir" aria-pressed="false" type="button">▶ 右向き</button>
           <button class="chip" id="chipStencil" aria-pressed="true" type="button">型紙</button>
@@ -630,7 +647,7 @@
       shutter=el("#shutter"),spotInput=el("#spotInput"),thumbJump=el("#thumbJump");
   var stream=null,facing="environment",dir="right";
   var stenOn=true,stenCustom=false,stenImgURL=null;
-  var ghostOn=false,ghostURL=null;
+  var ghostOn=false,ghostURL=null,ghostOpacity=42;
 
   function isSecure(){return window.isSecureContext!==false;}
 
@@ -871,7 +888,11 @@
   /* ---------- ゴースト（前回写真の重ね） ---------- */
   function applyGhostChip(){
     el("#chipGhost").setAttribute("aria-pressed", ghostOn?"true":"false");
-    el("#ghostImg").classList.toggle("on", ghostOn && !!el("#ghostImg").getAttribute("src"));
+    var gi=el("#ghostImg");
+    var show = ghostOn && !!gi.getAttribute("src");
+    gi.classList.toggle("on", show);
+    gi.style.opacity = show ? (ghostOpacity/100).toFixed(2) : "";
+    el("#ghostBar").hidden = !ghostOn;
   }
   function loadGhost(){
     if(!ghostOn){ applyGhostChip(); return; }
@@ -1315,6 +1336,12 @@
       if(levelOn) disableLevel(); else enableLevel();
     });
     el("#chipGhost").addEventListener("click",toggleGhost);
+    el("#ghostOpacityRange").addEventListener("input",function(){
+      ghostOpacity=+this.value; applyGhostChip();
+    });
+    el("#ghostOpacityRange").addEventListener("change",function(){
+      setMeta("ghostOpacity", ghostOpacity);
+    });
     el("#stenFile").addEventListener("change",function(e){
       var f=e.target.files&&e.target.files[0];e.target.value="";
       setStencilFromFile(f);
@@ -1346,10 +1373,11 @@
   applyStencil();
   openDB().then(function(d){
     db=d;
-    return Promise.all([getMeta("lastSpot"),getMeta("hintSeen"),loadStencil(),getMeta("levelOn"),getMeta("ghostOn"),getMeta("lastRarity")]);
+    return Promise.all([getMeta("lastSpot"),getMeta("hintSeen"),loadStencil(),getMeta("levelOn"),getMeta("ghostOn"),getMeta("lastRarity"),getMeta("ghostOpacity")]);
   }).then(function(r){
     if(r[0])spotInput.value=r[0];
     if(r[5])el("#rarity").value=r[5];
+    if(r[6]!=null){ ghostOpacity=+r[6]; el("#ghostOpacityRange").value=ghostOpacity; }
     if(r[1])el("#hint").hidden=true;
     // 傾きセンサーの許可が不要な端末（Android等）だけ前回の状態を復元。
     // iOSは requestPermission にユーザー操作が要るので「水平」ボタンを押してもらう。

@@ -1058,7 +1058,18 @@
     bx.onclick=function(){exportAll(stat);};
     bi.onclick=function(){el("#importFile").click();};
     acts.appendChild(bx);acts.appendChild(bi);
-    card.appendChild(use);card.appendChild(p);card.appendChild(acts);card.appendChild(stat);
+
+    var h3=document.createElement("h3");h3.className="sheet-h";h3.style.fontSize="14px";h3.style.marginTop="20px";h3.textContent="地図用に書き出し（KML）";
+    var mp=document.createElement("p");mp.className="muted-p";
+    mp.textContent="GPS座標のある写真を1つのKMLファイルに書き出します。Googleマイマップ（新しい地図 →「インポート」）や地理院地図（ツール →「ファイルから読み込み」）にそのファイルを渡すと、全部の撮影地点が地図上にピン表示されます。アプリからは何も送信されません。GPSがない写真は含まれません。";
+    var macts=document.createElement("div");macts.className="sheet-actions";
+    var bk=document.createElement("button");bk.className="btn";bk.type="button";bk.textContent="座標をKMLで書き出す";
+    bk.onclick=function(){exportKML(stat);};
+    macts.appendChild(bk);
+
+    card.appendChild(use);card.appendChild(p);card.appendChild(acts);
+    card.appendChild(h3);card.appendChild(mp);card.appendChild(macts);
+    card.appendChild(stat);
     showSheet();
     var estP=(navigator.storage&&navigator.storage.estimate)?navigator.storage.estimate():Promise.resolve(null);
     Promise.all([db?getAll("photos"):Promise.resolve([]),estP]).then(function(r){
@@ -1071,8 +1082,8 @@
       el("#bUsage").textContent=t;
     }).catch(function(){el("#bUsage").textContent="";});
   }
-  function saveFile(filename,str){
-    var blob=new Blob([str],{type:"application/json"});
+  function saveFile(filename,str,mime){
+    var blob=new Blob([str],{type:mime||"application/json"});
     var useCap=window.claude&&typeof window.claude.use==="function";
     var fallback=function(){
       var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=filename;
@@ -1107,6 +1118,32 @@
           stat.textContent=all.length+"枚を書き出しました（約 "+(json.length/1048576).toFixed(1)+" MB）";
         });
       });
+    });
+  }
+  function xmlEsc(s){
+    return String(s==null?"":s).replace(/[<>&'"]/g,function(c){
+      return {"<":"&lt;",">":"&gt;","&":"&amp;","'":"&apos;","\"":"&quot;"}[c];
+    });
+  }
+  function exportKML(stat){
+    if(!db)return;
+    getAll("photos").then(function(all){
+      var gps=all.filter(function(p){return p.lat!=null && p.lng!=null;});
+      if(!gps.length){ stat.textContent="GPS座標のある写真がありません"; return; }
+      gps.sort(function(a,b){return a.ts-b.ts;});
+      var parts=['<?xml version="1.0" encoding="UTF-8"?>',
+        '<kml xmlns="http://www.opengis.net/kml/2.2"><Document>',
+        '<name>飛び出しコレクション</name>'];
+      gps.forEach(function(p){
+        var when=fmtFull(p.ts);
+        var nm=(p.spot||"未分類")+" "+when;
+        var desc=(p.spot||"未分類")+" / "+when+(p.acc?(" / 精度±"+Math.round(p.acc)+"m"):"");
+        parts.push('<Placemark><name>'+xmlEsc(nm)+'</name><description>'+xmlEsc(desc)+
+          '</description><Point><coordinates>'+p.lng+','+p.lat+',0</coordinates></Point></Placemark>');
+      });
+      parts.push('</Document></kml>');
+      saveFile("tobidashi-map-"+fmtStamp()+".kml", parts.join("\n"), "application/vnd.google-earth.kml+xml");
+      stat.textContent=gps.length+"件の座標をKMLに書き出しました（全"+all.length+"枚中／GPSなしは除外）";
     });
   }
   el("#importFile").addEventListener("change",function(e){

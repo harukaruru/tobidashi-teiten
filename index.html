@@ -235,6 +235,14 @@
     border:1.5px solid var(--line);background:var(--field);color:var(--ink);
   }
   .spot-input:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+  .cam-row{display:flex;gap:8px;flex-wrap:wrap}
+  .cam-row .spot-input{flex:1 1 170px;min-width:0}
+  .rarity-select{
+    flex:0 0 auto;font-family:var(--f-body);font-size:15px;font-weight:700;
+    padding:11px 12px;border-radius:12px;
+    border:1.5px solid var(--line);background:var(--field);color:var(--ink);
+  }
+  .rarity-select:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
 
   .shutter-row{display:flex;align-items:center;justify-content:space-between}
   .shutter{
@@ -284,6 +292,19 @@
     font-family:var(--f-mono);font-size:9px;color:#fff;text-align:center;
     padding:10px 3px 3px;background:linear-gradient(transparent,rgba(0,0,0,.62));
   }
+  .grid-thumbs .rb{
+    position:absolute;left:4px;top:4px;
+    font-family:var(--f-body);font-size:9px;font-weight:800;line-height:1.3;
+    padding:2px 6px;border-radius:999px;color:#fff;
+    box-shadow:0 1px 3px rgba(0,0,0,.45);
+  }
+  .rb.rare{background:#6a4c93}
+  .rb.limited{background:#c9770f}
+  .kv .rb{
+    display:inline-block;font-family:var(--f-body);font-size:11px;font-weight:800;
+    padding:2px 8px;border-radius:999px;color:#fff;
+  }
+  .kv .rb.normal{background:var(--muted)}
   .empty{
     display:flex;flex-direction:column;align-items:center;gap:12px;
     padding:64px 24px;text-align:center;color:var(--muted);font-size:14px;
@@ -464,7 +485,14 @@
 
       <div class="cam-controls">
         <p class="hint" id="hint">「型紙」の線に実物を重ねると、毎回同じ位置・大きさで撮れます。「ゴースト」は前回同じスポットで撮った写真をうっすら重ねて、構図を合わせやすくします。「水平」は傾きガイド（線が緑で水平、前後の傾きは文字で案内）。逆向きは ◀ で左右反転し、撮影後に自動で反転補正して保存します。</p>
-        <input class="spot-input" id="spotInput" type="text" autocomplete="off" placeholder="スポット名（例：みなみ小学校前）">
+        <div class="cam-row">
+          <select class="rarity-select" id="rarity" aria-label="分類">
+            <option value="通常">通常</option>
+            <option value="レア">レア</option>
+            <option value="期間限定">期間限定</option>
+          </select>
+          <input class="spot-input" id="spotInput" type="text" autocomplete="off" placeholder="スポット名（例：みなみ小学校前）">
+        </div>
         <div class="shutter-row">
           <button class="thumb-jump" id="thumbJump" type="button" aria-label="ライブラリを開く"></button>
           <button class="shutter" id="shutter" type="button" aria-label="撮影する"></button>
@@ -741,6 +769,7 @@
       var rec={
         id:id,
         spot:(spotInput.value.trim()||"未分類"),
+        rarity:(el("#rarity").value||"通常"),
         ts:Date.now(),
         lat:lastGPS?lastGPS.lat:null,
         lng:lastGPS?lastGPS.lng:null,
@@ -751,6 +780,7 @@
         blob:blob,thumb:thumb
       };
       return put("photos",rec).then(function(){
+        setMeta("lastRarity",rec.rarity);
         return setMeta("lastSpot",rec.spot);
       }).then(function(){
         flashShutter();
@@ -916,6 +946,12 @@
           var im=document.createElement("img");im.src=u;im.alt="";
           var d=document.createElement("span");d.className="d";d.textContent=fmtShort(p.ts);
           b.appendChild(im);b.appendChild(d);
+          if(p.rarity && p.rarity!=="通常"){
+            var rb=document.createElement("span");
+            rb.className="rb "+(p.rarity==="レア"?"rare":"limited");
+            rb.textContent=p.rarity;
+            b.appendChild(rb);
+          }
           b.onclick=function(){openDetail(p.id);};
           g.appendChild(b);
         });
@@ -947,6 +983,11 @@
         if(typeof vNode==="string")dd.textContent=vNode;else dd.appendChild(vNode);dl.appendChild(dt);dl.appendChild(dd);}
       row("日時",fmtFull(p.ts));
       row("スポット",p.spot);
+      var rv=p.rarity||"通常";
+      var rbSpan=document.createElement("span");
+      rbSpan.className="rb "+(rv==="レア"?"rare":rv==="期間限定"?"limited":"normal");
+      rbSpan.textContent=rv;
+      row("分類",rbSpan);
       if(p.lat!=null){
         var frag=document.createElement("span");
         frag.textContent=p.lat.toFixed(6)+", "+p.lng.toFixed(6)+(p.acc?" (±"+Math.round(p.acc)+"m) ":" ");
@@ -1092,7 +1133,9 @@
         }).addTo(lmap);
         mk.bindPopup(
           '<img src="'+thumbURL+'" alt="">'+
-          '<div style="font-weight:700">'+xmlEsc(p.spot||"未分類")+'</div>'+
+          '<div style="font-weight:700">'+xmlEsc(p.spot||"未分類")+
+          (p.rarity&&p.rarity!=="通常"?' <span style="font-size:10px;padding:1px 6px;border-radius:8px;color:#fff;background:'+(p.rarity==="レア"?"#6a4c93":"#c9770f")+'">'+xmlEsc(p.rarity)+'</span>':'')+
+          '</div>'+
           '<div style="font-size:11px;color:#777;margin-top:2px">'+fmtFull(p.ts)+(p.acc?(" ・ ±"+Math.round(p.acc)+"m"):"")+'</div>'
         );
         lmarkers.push(mk);
@@ -1181,7 +1224,7 @@
       all.forEach(function(p){
         chain=chain.then(function(acc){
           return Promise.all([blobToDataURL(p.blob),blobToDataURL(p.thumb)]).then(function(r){
-            acc.push({id:p.id,spot:p.spot,ts:p.ts,lat:p.lat,lng:p.lng,acc:p.acc,dir:p.dir,flipped:p.flipped,memo:p.memo,w:p.w,h:p.h,blob:r[0],thumb:r[1]});
+            acc.push({id:p.id,spot:p.spot,rarity:p.rarity||"通常",ts:p.ts,lat:p.lat,lng:p.lng,acc:p.acc,dir:p.dir,flipped:p.flipped,memo:p.memo,w:p.w,h:p.h,blob:r[0],thumb:r[1]});
             return acc;
           });
         });
@@ -1211,7 +1254,7 @@
       gps.forEach(function(p){
         var when=fmtFull(p.ts);
         var nm=(p.spot||"未分類")+" "+when;
-        var desc=(p.spot||"未分類")+" / "+when+(p.acc?(" / 精度±"+Math.round(p.acc)+"m"):"");
+        var desc=(p.spot||"未分類")+" / "+(p.rarity||"通常")+" / "+when+(p.acc?(" / 精度±"+Math.round(p.acc)+"m"):"");
         parts.push('<Placemark><name>'+xmlEsc(nm)+'</name><description>'+xmlEsc(desc)+
           '</description><Point><coordinates>'+p.lng+','+p.lat+',0</coordinates></Point></Placemark>');
       });
@@ -1232,7 +1275,7 @@
         chain=chain.then(function(){
           return getOne("photos",p.id).then(function(exists){
             if(exists)return;
-            var rec={id:p.id,spot:p.spot||"未分類",ts:p.ts||Date.now(),lat:p.lat==null?null:p.lat,lng:p.lng==null?null:p.lng,
+            var rec={id:p.id,spot:p.spot||"未分類",rarity:p.rarity||"通常",ts:p.ts||Date.now(),lat:p.lat==null?null:p.lat,lng:p.lng==null?null:p.lng,
               acc:p.acc==null?null:p.acc,dir:p.dir||"right",flipped:!!p.flipped,memo:p.memo||"",w:p.w||0,h:p.h||0,
               blob:dataURLtoBlob(p.blob),thumb:dataURLtoBlob(p.thumb)};
             added++;return put("photos",rec);
@@ -1303,9 +1346,10 @@
   applyStencil();
   openDB().then(function(d){
     db=d;
-    return Promise.all([getMeta("lastSpot"),getMeta("hintSeen"),loadStencil(),getMeta("levelOn"),getMeta("ghostOn")]);
+    return Promise.all([getMeta("lastSpot"),getMeta("hintSeen"),loadStencil(),getMeta("levelOn"),getMeta("ghostOn"),getMeta("lastRarity")]);
   }).then(function(r){
     if(r[0])spotInput.value=r[0];
+    if(r[5])el("#rarity").value=r[5];
     if(r[1])el("#hint").hidden=true;
     // 傾きセンサーの許可が不要な端末（Android等）だけ前回の状態を復元。
     // iOSは requestPermission にユーザー操作が要るので「水平」ボタンを押してもらう。

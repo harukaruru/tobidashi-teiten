@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>メルカリ利益計算機</title>
+<meta name="theme-color" content="#eef0ec">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Noto+Sans+JP:wght@400;500;700;800&display=swap">
+<style>
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+
+  :root{
+    --ground:#eef0ec;
+    --panel:#ffffff;
+    --panel-2:#f3f5f1;
+    --field:#fbfcfa;
+    --ink:#1e2420;
+    --muted:#66716a;
+    --line:#d9ded6;
+    --accent:#1f7a5c;
+    --accent-ink:#ffffff;
+    --danger:#c6402f;
+    --good-bg:rgba(31,122,92,.08);
+    --danger-bg:rgba(198,64,47,.09);
+    --shadow:0 1px 0 rgba(30,36,32,.04), 0 20px 40px -24px rgba(30,36,32,.35);
+    --f-body:"Noto Sans JP","Hiragino Kaku Gothic ProN",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+    color-scheme:light dark;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#121613;
+      --panel:#1a201c;
+      --panel-2:#212822;
+      --field:#161c18;
+      --ink:#e7ede7;
+      --muted:#93a199;
+      --line:#2c352e;
+      --accent:#4fbe8f;
+      --accent-ink:#08150f;
+      --danger:#e77361;
+      --good-bg:rgba(79,190,143,.14);
+      --danger-bg:rgba(231,115,97,.15);
+      --shadow:0 1px 0 rgba(0,0,0,.3), 0 22px 44px -26px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#121613;
+    --panel:#1a201c;
+    --panel-2:#212822;
+    --field:#161c18;
+    --ink:#e7ede7;
+    --muted:#93a199;
+    --line:#2c352e;
+    --accent:#4fbe8f;
+    --accent-ink:#08150f;
+    --danger:#e77361;
+    --good-bg:rgba(79,190,143,.14);
+    --danger-bg:rgba(231,115,97,.15);
+    --shadow:0 1px 0 rgba(0,0,0,.3), 0 22px 44px -26px rgba(0,0,0,.7);
+  }
+
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--ground);color:var(--ink);
+    font-family:var(--f-body);font-size:15px;line-height:1.6;
+    -webkit-text-size-adjust:100%;
+    display:flex;justify-content:center;
+    padding:28px 16px calc(40px + env(safe-area-inset-bottom));
+  }
+  ::selection{background:var(--accent);color:var(--accent-ink)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  .wrap{width:100%;max-width:440px}
+
+  header{margin:0 4px 18px}
+  header h1{
+    font-size:20px;font-weight:800;margin:0 0 4px;letter-spacing:.01em;
+    text-wrap:balance;
+  }
+  header p{margin:0;font-size:13px;color:var(--muted);line-height:1.7}
+
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .section{padding:20px 20px 4px}
+  .section + .section{padding-top:4px}
+
+  .field{margin-bottom:16px}
+  .field label{
+    display:block;font-size:12.5px;font-weight:700;color:var(--muted);
+    margin-bottom:6px;letter-spacing:.02em;
+  }
+  .yeninput{position:relative}
+  .yeninput .unit{
+    position:absolute;left:14px;top:50%;transform:translateY(-50%);
+    font-family:var(--f-mono);font-weight:600;color:var(--muted);font-size:15px;
+    pointer-events:none;
+  }
+  .yeninput input{padding-left:34px}
+  input[type="number"],select{
+    width:100%;font-family:var(--f-mono);font-size:17px;font-weight:600;
+    padding:12px 14px;border-radius:11px;color:var(--ink);
+    border:1.5px solid var(--line);background:var(--field);
+    appearance:none;-webkit-appearance:none;
+  }
+  select{
+    font-family:var(--f-body);font-weight:500;font-size:15px;
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="%2366716a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 5 5 5-5"/></svg>');
+    background-repeat:no-repeat;background-position:right 12px center;background-size:18px;
+    padding-right:38px;
+  }
+  input[type="number"]:focus-visible,select:focus-visible{border-color:var(--accent)}
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button{margin:0}
+
+  .divider{height:1px;background:var(--line);margin:6px 20px 0}
+
+  .results{padding:16px 20px 20px;display:flex;flex-direction:column;gap:2px}
+  .row{
+    display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+    padding:11px 4px;border-radius:10px;
+  }
+  .row .k{font-size:13.5px;color:var(--muted);font-weight:500}
+  .row .v{font-family:var(--f-mono);font-weight:600;font-size:16px;font-variant-numeric:tabular-nums}
+
+  .row--profit{
+    margin-top:6px;padding:16px 14px;background:var(--good-bg);
+  }
+  .row--profit .k{font-size:14px;font-weight:700;color:var(--ink)}
+  .row--profit .v{font-size:24px;font-weight:800;color:var(--accent)}
+  .row--profit.is-loss{background:var(--danger-bg)}
+  .row--profit.is-loss .v{color:var(--danger)}
+
+  .row--margin .v{font-weight:700}
+  .row--margin.is-loss .v{color:var(--danger)}
+  .row--margin:not(.is-loss) .v{color:var(--accent)}
+
+  .note{
+    margin:14px 4px 0;font-size:11.5px;color:var(--muted);line-height:1.7;
+    border-left:3px solid var(--line);padding-left:10px;
+  }
+
+  @media (prefers-reduced-motion:no-preference){
+    .row--profit{transition:background-color .15s ease}
+    .row--profit .v{transition:color .15s ease}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>メルカリ利益計算機</h1>
+    <p>購入金額・販売予定金額・送料を入れると、手数料と利益が自動で計算されます。</p>
+  </header>
+
+  <div class="card">
+    <div class="section">
+      <div class="field">
+        <label for="cost">購入金額</label>
+        <div class="yeninput">
+          <span class="unit">¥</span>
+          <input type="number" id="cost" inputmode="numeric" min="0" step="1" placeholder="0">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="sale">販売予定金額</label>
+        <div class="yeninput">
+          <span class="unit">¥</span>
+          <input type="number" id="sale" inputmode="numeric" min="0" step="1" placeholder="0">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="shipping">送料</label>
+        <select id="shipping">
+          <option value="175">ゆうパケットポストmini（175円）</option>
+          <option value="200">ネコポス（200円）</option>
+          <option value="210" selected>ゆうパケットポスト（210円）</option>
+          <option value="230">ゆうパケット（230円）</option>
+          <option value="450">宅急便コンパクト（450円）</option>
+          <option value="750">宅急便60サイズ（750円）</option>
+          <option value="850">宅急便80サイズ（850円）</option>
+          <option value="1050">宅急便100サイズ（1050円）</option>
+          <option value="1200">宅急便120サイズ（1200円）</option>
+          <option value="other">その他（自由入力）</option>
+        </select>
+      </div>
+
+      <div class="field" id="otherField" hidden>
+        <label for="otherShip">送料（自由入力）</label>
+        <div class="yeninput">
+          <span class="unit">¥</span>
+          <input type="number" id="otherShip" inputmode="numeric" min="0" step="1" placeholder="0">
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="results">
+      <div class="row">
+        <span class="k">販売手数料（10%）</span>
+        <span class="v" id="outFee">¥0</span>
+      </div>
+      <div class="row">
+        <span class="k">送料</span>
+        <span class="v" id="outShip">¥0</span>
+      </div>
+      <div class="row row--profit" id="rowProfit">
+        <span class="k">利益</span>
+        <span class="v" id="outProfit">¥0</span>
+      </div>
+      <div class="row row--margin" id="rowMargin">
+        <span class="k">利益率</span>
+        <span class="v" id="outMargin">0.0%</span>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">販売手数料はメルカリの一律10%（1円未満切り捨て）で計算しています。実際の手数料率やカテゴリ限定の送料は変更・変動する場合があるため、あくまで目安としてご利用ください。</p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var el=function(id){return document.getElementById(id);};
+  var costEl=el("cost"), saleEl=el("sale"), shipEl=el("shipping"),
+      otherField=el("otherField"), otherEl=el("otherShip");
+  var outFee=el("outFee"), outShip=el("outShip"), outProfit=el("outProfit"), outMargin=el("outMargin"),
+      rowProfit=el("rowProfit"), rowMargin=el("rowMargin");
+
+  function yen(n){
+    var sign = n<0 ? "-" : "";
+    return sign + "¥" + Math.abs(Math.round(n)).toLocaleString("ja-JP");
+  }
+  function num(input){
+    var v = parseFloat(input.value);
+    return isFinite(v) ? v : 0;
+  }
+
+  function currentShipping(){
+    if(shipEl.value === "other") return num(otherEl);
+    return num(shipEl);
+  }
+
+  function calc(){
+    var cost = num(costEl);
+    var sale = num(saleEl);
+    var ship = currentShipping();
+
+    var fee = Math.floor(sale * 0.10);
+    var profit = sale - fee - ship - cost;
+    var margin = sale > 0 ? (profit / sale * 100) : 0;
+
+    outFee.textContent = yen(fee);
+    outShip.textContent = yen(ship);
+    outProfit.textContent = yen(profit);
+    outMargin.textContent = margin.toFixed(1) + "%";
+
+    var loss = profit < 0;
+    rowProfit.classList.toggle("is-loss", loss);
+    rowMargin.classList.toggle("is-loss", loss);
+  }
+
+  shipEl.addEventListener("change", function(){
+    otherField.hidden = (shipEl.value !== "other");
+    calc();
+  });
+  [costEl, saleEl, otherEl].forEach(function(input){
+    input.addEventListener("input", calc);
+  });
+
+  calc();
+})();
+</script>
+</body>
+</html>

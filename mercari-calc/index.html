@@ -95,26 +95,38 @@
     display:block;font-size:12.5px;font-weight:700;color:var(--muted);
     margin-bottom:6px;letter-spacing:.02em;
   }
-  .yeninput{position:relative}
+  .yeninput{
+    display:flex;align-items:stretch;
+    border-radius:11px;border:1.5px solid var(--line);background:var(--field);
+    overflow:hidden;
+  }
+  .yeninput:focus-within{border-color:var(--accent)}
   .yeninput .unit{
-    position:absolute;left:14px;top:50%;transform:translateY(-50%);
+    flex:0 0 auto;display:flex;align-items:center;
+    padding:0 2px 0 14px;
     font-family:var(--f-mono);font-weight:600;color:var(--muted);font-size:15px;
     pointer-events:none;
   }
-  .yeninput input{padding-left:34px}
-  input[type="number"],select{
-    width:100%;font-family:var(--f-mono);font-size:17px;font-weight:600;
-    padding:12px 14px;border-radius:11px;color:var(--ink);
-    border:1.5px solid var(--line);background:var(--field);
+  .yeninput input{
+    flex:1 1 auto;min-width:0;
+    border:none;background:transparent;border-radius:0;
+    padding:12px 14px 12px 4px;
+  }
+  .yeninput input:focus-visible{outline:none}
+  input[type="number"]{
+    font-family:var(--f-mono);font-size:17px;font-weight:600;color:var(--ink);
     appearance:none;-webkit-appearance:none;
   }
   select{
-    font-family:var(--f-body);font-weight:500;font-size:15px;
+    width:100%;font-family:var(--f-body);font-weight:500;font-size:15px;
+    padding:12px 14px;border-radius:11px;color:var(--ink);
+    border:1.5px solid var(--line);background:var(--field);
+    appearance:none;-webkit-appearance:none;
     background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="%2366716a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 5 5 5-5"/></svg>');
     background-repeat:no-repeat;background-position:right 12px center;background-size:18px;
     padding-right:38px;
   }
-  input[type="number"]:focus-visible,select:focus-visible{border-color:var(--accent)}
+  select:focus-visible{border-color:var(--accent)}
   input[type="number"]::-webkit-outer-spin-button,
   input[type="number"]::-webkit-inner-spin-button{margin:0}
 
